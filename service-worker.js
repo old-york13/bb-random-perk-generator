@@ -1,13 +1,12 @@
 const CACHE_NAME = 'bb-perks-v2';
 const ASSETS = [
-  '/index.html',
-  '/optimal.html',
-  '/style.css',
-  '/script.js',
-  '/backgrounds.js',
-  '/images/background.jpg',
-  '/icons/icon-192.png',
-  '/icons/icon-512.png'
+  '/bb-random-perk-generator/index.html',
+  '/bb-random-perk-generator/optimal.html',
+  '/bb-random-perk-generator/style.css',
+  '/bb-random-perk-generator/script.js',
+  '/bb-random-perk-generator/backgrounds.js',
+  '/bb-random-perk-generator/icons/icon-192.png',
+  '/bb-random-perk-generator/icons/icon-512.png'
 ];
 
 // Установка — кешируем всё
