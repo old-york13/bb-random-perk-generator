@@ -1,0 +1,368 @@
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&display=swap');
+
+html {
+    height: 100%;
+}
+
+body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    background:
+        linear-gradient(rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.55)),
+        url("images/background.jpg");
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    color: #f0d79a;
+    font-family: 'Cormorant Garamond', 'Georgia', 'Times New Roman', serif;
+    letter-spacing: 0.3px;
+    font-size: 18px;
+}
+
+.container {
+    width: 1100px;
+    margin: auto;
+    padding: 30px;
+    flex: 1;
+    background: linear-gradient(180deg, rgba(45, 37, 28, 0.7) 0%, rgba(30, 25, 18, 0.85) 100%);
+    border-left: 1px solid rgba(212, 175, 55, 0.15);
+    border-right: 1px solid rgba(212, 175, 55, 0.15);
+    box-shadow: 0 0 60px rgba(0, 0, 0, 0.5);
+}
+
+/* Декоративный разделитель */
+.divider {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 25px;
+    opacity: 0.5;
+}
+.divider-line {
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #d4af37, transparent);
+}
+.divider-icon {
+    color: #d4af37;
+    font-size: 18px;
+}
+
+header {
+    text-align: center;
+    margin-bottom: 25px;
+}
+
+h1 {
+    margin: 0;
+    color: #d9b45a;
+    font-size: 52px;
+    text-shadow: 2px 2px 6px black, 0 0 30px rgba(212, 175, 55, 0.2);
+    letter-spacing: 5px;
+    font-weight: 700;
+    font-family: 'Cinzel', 'Georgia', serif;
+}
+
+h2 {
+    margin-top: 10px;
+    color: #b89c61;
+    font-weight: 400;
+    font-style: italic;
+    letter-spacing: 2px;
+    text-shadow: 1px 1px 3px black;
+    font-family: 'Cinzel', 'Georgia', serif;
+}
+
+.controls {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin: 30px 0;
+    flex-wrap: wrap;
+}
+
+/* Кнопки */
+button {
+    background: linear-gradient(180deg, #8b6914 0%, #6b4f10 100%);
+    color: #fff;
+    border: 1px solid #a07d2e;
+    padding: 15px 30px;
+    font-size: 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    position: relative;
+    overflow: hidden;
+    text-shadow: 0 1px 2px black;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    letter-spacing: 0.5px;
+    font-family: 'Cinzel', 'Georgia', serif;	
+}
+
+button:hover {
+    background: linear-gradient(180deg, #a8821a 0%, #7d5e14 100%);
+    border-color: #d4af37;
+    box-shadow: 0 6px 25px rgba(212, 175, 55, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    transform: translateY(-2px);
+}
+
+button:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+/* Эффект волны при наведении */
+button::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    transition: width 0.5s, height 0.5s;
+}
+button:hover::after {
+    width: 400px;
+    height: 400px;
+}
+
+/* Кнопка хаоса */
+#chaosButton {
+    background: linear-gradient(180deg, #8b1f1f 0%, #5c1414 100%);
+    border-color: #a04040;
+}
+#chaosButton:hover {
+    background: linear-gradient(180deg, #a52a2a 0%, #751d1d 100%);
+    border-color: #cc5555;
+    box-shadow: 0 6px 25px rgba(200, 50, 50, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+/* Сетка перков */
+.perk-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 15px;
+}
+
+.placeholder {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 50px;
+    background: rgba(45, 37, 28, 0.7);
+    border: 2px dashed #6f552d;
+    border-radius: 10px;
+    font-size: 20px;
+    color: #f5e6c8;  /* было #b89c61 — теперь светлее */
+    backdrop-filter: blur(2px);
+}
+
+/* Карточки перков */
+.perk {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background: rgba(40, 30, 20, 0.8);
+    backdrop-filter: blur(3px);
+    border: 1px solid #86652f;
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+    min-height: 80px;
+    transition: all 0.35s ease;
+    transform: rotateY(90deg);
+    opacity: 0;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+.perk.show {
+    opacity: 1;
+    transform: rotateY(0deg);
+}
+.perk:hover {
+    transform: scale(1.05);
+    border-color: #d7b66d;
+    box-shadow: 0 8px 30px rgba(212, 175, 55, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    z-index: 10;
+}
+
+/* Студент */
+.student {
+    border-color: #6ac96a;
+    color: #7cff7c;
+    box-shadow: 0 0 15px rgba(106, 201, 106, 0.15);
+}
+
+.perk-icon {
+    width: 64px;
+    height: 64px;
+    image-rendering: pixelated;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+}
+
+.perk-title {
+    font-weight: 700;
+    text-align: center;
+    font-size: 14px;
+    text-shadow: 0 1px 3px black;
+    font-family: 'Cinzel', 'Georgia', serif;
+    letter-spacing: 0.5px;
+}
+
+/* Всплывающая подсказка */
+.tooltip {
+    display: none;
+    position: absolute;
+    bottom: 110%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 240px;
+    background: rgba(20, 16, 10, 0.97);
+    border: 1px solid #caa34f;
+    border-radius: 8px;
+    padding: 12px;
+    color: #e8d5a3;
+    z-index: 100;
+    font-size: 14px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.7), 0 0 15px rgba(212, 175, 55, 0.1);
+    backdrop-filter: blur(5px);
+    line-height: 1.4;
+}
+.perk:hover .tooltip {
+    display: block;
+}
+
+.green {
+    color: #66ff66;
+    font-weight: bold;
+}
+.red {
+    color: #ff6666;
+    font-weight: bold;
+}
+
+/* Футер */
+.footer {
+    margin-top: auto;
+    padding: 20px;
+    text-align: center;
+    color: #c7b38a;
+    font-size: 14px;
+    opacity: 0.85;
+    border-top: 1px solid rgba(111, 85, 45, 0.3);
+    background: rgba(0, 0, 0, 0.3);
+}
+.footer a {
+    color: #d4af37;
+    text-decoration: none;
+    font-weight: bold;
+    transition: 0.3s;
+}
+.footer a:hover {
+    color: #ffd700;
+    text-shadow: 0 0 10px gold;
+}
+
+.youtube-link {
+    color: #d4af37;
+    text-decoration: none;
+    font-weight: bold;
+}
+.youtube-icon {
+    width: 22px;
+    height: 22px;
+    vertical-align: middle;
+    margin-right: 6px;
+}
+
+/* Ссылка-кнопка */
+.controls a {
+    text-decoration: none;
+}
+.btn-link {
+    display: inline-block;
+    background: linear-gradient(180deg, #8b6914 0%, #6b4f10 100%);
+    color: white;
+    border: 1px solid #a07d2e;
+    padding: 15px 30px;
+    font-size: 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.25s ease;
+    text-shadow: 0 1px 2px black;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    letter-spacing: 0.5px;
+    font-family: 'Cinzel', 'Georgia', serif;
+}
+.btn-link:hover {
+    background: linear-gradient(180deg, #a8821a 0%, #7d5e14 100%);
+    border-color: #d4af37;
+    box-shadow: 0 6px 25px rgba(212, 175, 55, 0.25);
+    transform: translateY(-2px);
+}
+
+/* Адаптивность */
+@media (max-width: 1150px) {
+    .container {
+        width: 95%;
+        padding: 20px;
+    }
+}
+@media (max-width: 900px) {
+    .perk-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    h1 {
+        font-size: 38px;
+    }
+}
+@media (max-width: 550px) {
+    .perk-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    h1 {
+        font-size: 30px;
+        letter-spacing: 3px;
+    }
+}
+.placeholder-item {
+    margin-bottom: 12px;
+    line-height: 1.5;
+}
+.placeholder-item:last-child {
+    margin-bottom: 0;
+}
+.lang-switch {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    display: flex;
+    gap: 5px;
+    z-index: 10;
+}
+.lang-btn {
+    padding: 5px 12px !important;
+    font-size: 13px !important;
+    border-radius: 4px !important;
+    background: rgba(45, 37, 28, 0.8) !important;
+    border: 1px solid #6f552d !important;
+    color: #999 !important;
+    cursor: pointer;
+    transition: 0.2s;
+    font-family: inherit;
+}
+.lang-btn.active {
+    background: #7b5b2c !important;
+    color: #fff !important;
+    border-color: #d4af37 !important;
+}
+.lang-btn:hover:not(.active) {
+    color: #d4af37 !important;
+}

@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ru">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#d4af37">
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/service-worker.js');
+  }
+</script>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Battle Brothers - Random Perk Generator</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="container">
+
+    <header>
+        <a href="index.html" style="text-decoration:none;"><h1>BATTLE BROTHERS</h1></a>
+        <h2>Генератор случайных навыков</h2>
+        <div class="lang-switch">
+            <button id="langRu" class="lang-btn active">RU</button>
+            <button id="langEn" class="lang-btn">EN</button>
+        </div>
+    </header>
+
+    <div class="controls">        
+        <button id="generateButton">🎲 Сгенерировать случайный билд</button>
+        <button id="chaosButton">💀 Абсолютная случайность</button>
+		<a href="optimal.html" class="btn-link">🎯 Подобрать билд по характеристикам</a>
+    </div>
+
+    <div id="result" class="perk-grid">
+        <div class="placeholder" id="placeholderText">
+            Нажми кнопку <strong style="color:#8b6914;">«Сгенерировать случайный билд»</strong> для формирования билда со случайными навыками, но с минимальной логикой.
+            <br><br>
+            Нажми кнопку <strong style="color:#7a1f1f;">«Абсолютная случайность»</strong> для формирования билда без каких-либо логических ограничений, только хаос.
+			<br><br>
+			Нажми кнопку <strong style="color:#8b6914;">«Подобрать билд по характеристикам»</strong> и тебе подберётся один из билдов под характеристики твоего бойца.           
+        </div>
+    </div>
+
+</div>
+
+<script src="script.js"></script>
+
+<footer class="footer">
+    Генератор выполнил <strong>York XIII</strong> |
+    <a href="https://youtube.com/@yorkxiii" target="_blank" class="youtube-link">
+        <svg class="youtube-icon" viewBox="0 0 24 24">
+            <path fill="#FF0000" d="M23.5 6.2s-.2-1.7-.9-2.4c-.9-.9-1.9-.9-2.4-1C16.8 2.5 12 2.5 12 2.5h0s-4.8 0-8.2.3c-.5.1-1.5.1-2.4 1C.7 4.5.5 6.2.5 6.2S0 8.1 0 10v2c0 1.9.5 3.8.5 3.8s.2 1.7.9 2.4c.9.9 2.1.9 2.7 1 2 .2 7.9.3 7.9.3s4.8 0 8.2-.3c.5-.1 1.5-.1 2.4-1 .7-.7.9-2.4.9-2.4S24 13.9 24 12v-2c0-1.9-.5-3.8-.5-3.8z"/>
+            <path fill="white" d="M9.5 15.2l6.3-3.2-6.3-3.2z"/>
+        </svg>
+        YouTube
+    </a>
+</footer>
+
+<!-- ПЕРЕКЛЮЧАТЕЛЬ ЯЗЫКОВ -->
+<script>
+const translations = {
+    ru: {
+        subtitle: "Генератор случайных навыков",
+        optimalBtn: "🎯 Подобрать билд по характеристикам",
+        randomBtn: "🎲 Сгенерировать случайный билд",
+        chaosBtn: "💀 Абсолютная случайность",
+        placeholder: 'Нажми кнопку <strong style="color:#8b6914;">«Сгенерировать случайный билд»</strong> для формирования билда со случайными навыками, но с минимальной логикой.<br><br>Нажми кнопку <strong style="color:#7a1f1f;">«Абсолютная случайность»</strong> для формирования билда без каких-либо логических ограничений, только хаос.<br><br>Нажми кнопку <strong style="color:#8b6914;">«Подобрать билд по характеристикам»</strong> и тебе подберётся один из билдов под характеристики твоего бойца.',
+        footerText: "Генератор выполнил"
+    },
+    en: {
+        subtitle: "Random Perk Generator",
+        optimalBtn: "🎯 Find Optimal Build",
+        randomBtn: "🎲 Generate Random Build",
+        chaosBtn: "💀 Absolute Chaos",
+        placeholder: 'Click <strong style="color:#8b6914;">«Generate Random Build»</strong> for a random build with minimal logic.<br><br>Click <strong style="color:#7a1f1f;">«Absolute Chaos»</strong> for a completely random build with no logic whatsoever.<br><br>Click <strong style="color:#8b6914;">«Find Optimal Build»</strong> to get a build matching your brother\'s stats.',
+        footerText: "Generator by"
+    }
+};
+
+function switchLanguage(lang) {
+    const t = translations[lang];
+
+    document.querySelector('h2').textContent = t.subtitle;
+    document.querySelector('.btn-link').textContent = t.optimalBtn;
+    document.getElementById('generateButton').textContent = t.randomBtn;
+    document.getElementById('chaosButton').textContent = t.chaosBtn;
+
+    const placeholder = document.getElementById('placeholderText');
+    if (placeholder) placeholder.innerHTML = t.placeholder;
+
+    const footer = document.querySelector('.footer');
+    if (footer) {
+        footer.innerHTML = t.footerText + ' <strong>York XIII</strong> | ' +
+        '<a href="https://youtube.com/@yorkxiii" target="_blank" class="youtube-link">' +
+        '<svg class="youtube-icon" viewBox="0 0 24 24">' +
+        '<path fill="#FF0000" d="M23.5 6.2s-.2-1.7-.9-2.4c-.9-.9-1.9-.9-2.4-1C16.8 2.5 12 2.5 12 2.5h0s-4.8 0-8.2.3c-.5.1-1.5.1-2.4 1C.7 4.5.5 6.2.5 6.2S0 8.1 0 10v2c0 1.9.5 3.8.5 3.8s.2 1.7.9 2.4c.9.9 2.1.9 2.7 1 2 .2 7.9.3 7.9.3s4.8 0 8.2-.3c.5-.1 1.5-.1 2.4-1 .7-.7.9-2.4.9-2.4S24 13.9 24 12v-2c0-1.9-.5-3.8-.5-3.8z"/>' +
+        '<path fill="white" d="M9.5 15.2l6.3-3.2-6.3-3.2z"/>' +
+        '</svg>YouTube</a>';
+    }
+
+	setPerkLanguage(lang);
+	localStorage.setItem('bbLang', lang);
+	
+	const existingCards = document.querySelectorAll('#result .perk');
+	if (existingCards.length > 0) {
+    existingCards.forEach(card => {
+        const titleEl = card.querySelector('.perk-title');
+        const tooltipEl = card.querySelector('.tooltip');
+        const currentName = titleEl.textContent;
+        
+        // Ищем перк: сначала по русскому, потом по английскому
+        let perk = perks.find(p => p.name === currentName);
+        if (!perk) {
+            perk = perks.find(p => {
+                const trans = perkTranslations[p.name];
+                return trans && trans.en && trans.en.name === currentName;
+            });
+        }
+        
+        if (perk) {
+            const display = getPerkDisplay(perk);
+            titleEl.textContent = display.name;
+            tooltipEl.innerHTML = display.description;
+        }
+    });
+	}
+    document.getElementById('langRu').classList.toggle('active', lang === 'ru');
+    document.getElementById('langEn').classList.toggle('active', lang === 'en');
+}
+
+document.getElementById('langRu').addEventListener('click', () => switchLanguage('ru'));
+document.getElementById('langEn').addEventListener('click', () => switchLanguage('en'));
+
+(function() {
+    const savedLang = localStorage.getItem('bbLang');
+    if (savedLang && savedLang !== 'ru') {
+        switchLanguage(savedLang);
+    }
+})();
+
+</script>
+
+</body>
+</html>

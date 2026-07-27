@@ -1,0 +1,2074 @@
+<!DOCTYPE html>
+<html lang="ru">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#d4af37">
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/service-worker.js');
+  }
+</script>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Battle Brothers — Подбор билда</title>
+    <link rel="stylesheet" href="style.css">
+<style>
+    /* Только дополнительные стили для optimal */
+    .input-panel {
+        background: #2d251c;
+        border: 2px solid #6f552d;
+        border-radius: 12px;
+        padding: 25px 30px;
+        margin-bottom: 25px;
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 18px 25px;
+    }
+    .stat-group {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+    .stat-group label {
+        font-size: 13px;
+        color: #c7b38a;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .stat-group .row {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+    }
+    .stat-group input {
+        width: 70px;
+        padding: 8px 10px;
+        background: #3a2e20;
+        border: 1px solid #6f552d;
+        border-radius: 5px;
+        color: #fff;
+        font-size: 15px;
+        text-align: center;
+    }
+    .stat-group select {
+        padding: 8px 6px;
+        background: #3a2e20;
+        border: 1px solid #6f552d;
+        border-radius: 5px;
+        color: #fff;
+        font-size: 14px;
+        cursor: pointer;
+    }
+    .btn-row {
+        grid-column: 1 / -1;
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+        flex-wrap: wrap;
+        margin-top: 10px;
+    }
+    button.primary {
+		background: #7b5b2c;
+		font-weight: bold;
+	}
+	button.primary:hover {
+		background: #98703a;
+	}
+    .info-bar {
+        background: #2d251c;
+        border: 2px solid #6f552d;
+        border-radius: 10px;
+        padding: 15px 25px;
+        margin-bottom: 25px;
+        display: none;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+    .info-bar.active {
+        display: flex;
+    }
+    .info-bar .arch-label {
+        font-size: 20px;
+        font-weight: bold;
+        color: #d4af37;
+    }
+    .info-bar .stats-summary {
+        font-size: 14px;
+        color: #c7b38a;
+        display: flex;
+        gap: 15px;
+        flex-wrap: wrap;
+    }
+    .info-bar .stats-summary span {
+        white-space: nowrap;
+    }
+    .info-bar .score-badge {
+        background: #4a3a20;
+        border: 1px solid #d4af37;
+        border-radius: 20px;
+        padding: 5px 15px;
+        font-size: 14px;
+        color: #f0d79a;
+    }
+    .modal-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.75);
+        z-index: 1000;
+        justify-content: center;
+        align-items: center;
+    }
+    .modal-overlay.active {
+        display: flex;
+    }
+    .modal {
+        background: #2d251c;
+        border: 2px solid #d4af37;
+        border-radius: 14px;
+        padding: 30px;
+        max-width: 550px;
+        width: 90%;
+        text-align: center;
+    }
+    .modal h3 {
+        color: #d4af37;
+        margin-bottom: 20px;
+        font-size: 22px;
+    }
+    .modal .archetype-list {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin-bottom: 20px;
+    }
+    .modal .archetype-btn {
+        background: #3a2e20;
+        border: 2px solid #6f552d;
+        color: #fff;
+        padding: 14px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 16px;
+        transition: 0.2s;
+        text-align: left;
+    }
+    .modal .archetype-btn:hover {
+        border-color: #d4af37;
+        background: #4a3a28;
+    }
+    .modal .arch-name {
+        font-weight: bold;
+        color: #f0d79a;
+    }
+    .modal .arch-desc {
+        font-size: 13px;
+        color: #999;
+        margin-top: 4px;
+    }
+
+    @media (max-width: 900px) {
+        .input-panel {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+    @media (max-width: 550px) {
+        .input-panel {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+    <a href="index.html" style="text-decoration:none;"><h1>BATTLE BROTHERS</h1></a>
+    <h2>Подбор билда по характеристикам</h2>
+    <div class="lang-switch">
+        <button id="langRu" class="lang-btn active">RU</button>
+        <button id="langEn" class="lang-btn">EN</button>
+    </div>
+</header>
+
+<!--    <button id="toggleScale" style="display:block;margin:0 auto 15px;">📏 Показать шкалы характеристик</button>
+	
+	<button id="toggleChart" style="display:block;margin:0 auto 15px;">📊 Показать график распределения</button>
+
+<div class="chart-panel" id="chartPanel" style="display:none;">
+    <h3 style="text-align:center;color:#d9b45a;margin-bottom:10px;">Распределение характеристик (все бэкграунды)</h3>
+    <div style="text-align:center;margin-bottom:15px;">
+        <label style="color:#c7b38a;margin-right:10px;">Характеристика:</label>
+        <select id="chartStatSelect" style="padding:6px 10px;background:#3a2e20;color:#fff;border:1px solid #6f552d;border-radius:4px;">
+            <option value="hp">Здоровье (ОЗ)</option>
+            <option value="fat">Выносливость</option>
+            <option value="res">Решимость</option>
+            <option value="init">Инициатива</option>
+            <option value="matk">Атака ББ</option>
+            <option value="ratk">Атака ДБ</option>
+            <option value="mdef">Защита ББ</option>
+            <option value="rdef">Защита ДБ</option>
+        </select>
+    </div>
+    <canvas id="distChart" width="800" height="400" style="width:100%;max-width:800px;display:block;margin:0 auto;background:#1f1810;border:1px solid var(--border);border-radius:8px;"></canvas>
+</div>
+
+<div class="scale-panel" id="scalePanel" style="display:none;">
+    <h3 style="text-align:center;color:#d9b45a;margin-bottom:15px;">Шкалы характеристик (все бэкграунды)</h3>
+    <div class="scale-grid" id="scaleGrid"></div>
+</div>
+-->	
+	<!-- Панель ввода -->
+    <div class="input-panel" id="inputPanel">
+        <div class="stat-group">
+            <label>Здоровье (ОЗ)</label>
+            <div class="row">
+                <input type="number" id="hp" value="55" min="20" max="80">
+                <select id="hpStars"><option value="0">☆</option><option value="1">★</option><option value="2">★★</option><option value="3">★★★</option></select>
+            </div>
+        </div>
+        <div class="stat-group">
+            <label>Выносливость</label>
+            <div class="row">
+                <input type="number" id="fat" value="95" min="60" max="130">
+                <select id="fatStars"><option value="0">☆</option><option value="1">★</option><option value="2">★★</option><option value="3">★★★</option></select>
+            </div>
+        </div>
+        <div class="stat-group">
+            <label>Решимость</label>
+            <div class="row">
+                <input type="number" id="res" value="35" min="10" max="65">
+                <select id="resStars"><option value="0">☆</option><option value="1">★</option><option value="2">★★</option><option value="3">★★★</option></select>
+            </div>
+        </div>
+        <div class="stat-group">
+            <label>Инициатива</label>
+            <div class="row">
+                <input type="number" id="init" value="105" min="70" max="130">
+                <select id="initStars"><option value="0">☆</option><option value="1">★</option><option value="2">★★</option><option value="3">★★★</option></select>
+            </div>
+        </div>
+        <div class="stat-group">
+            <label>Атака ближнего боя</label>
+            <div class="row">
+                <input type="number" id="matk" value="52" min="30" max="80">
+                <select id="matkStars"><option value="0">☆</option><option value="1">★</option><option value="2">★★</option><option value="3">★★★</option></select>
+            </div>
+        </div>
+        <div class="stat-group">
+            <label>Атака дальнего боя</label>
+            <div class="row">
+                <input type="number" id="ratk" value="35" min="20" max="65">
+                <select id="ratkStars"><option value="0">☆</option><option value="1">★</option><option value="2">★★</option><option value="3">★★★</option></select>
+            </div>
+        </div>
+        <div class="stat-group">
+            <label>Защита ближнего боя</label>
+            <div class="row">
+                <input type="number" id="mdef" value="2" min="-10" max="25">
+                <select id="mdefStars"><option value="0">☆</option><option value="1">★</option><option value="2">★★</option><option value="3">★★★</option></select>
+            </div>
+        </div>
+        <div class="stat-group">
+            <label>Защита дальнего боя</label>
+            <div class="row">
+                <input type="number" id="rdef" value="2" min="-15" max="20">
+                <select id="rdefStars"><option value="0">☆</option><option value="1">★</option><option value="2">★★</option><option value="3">★★★</option></select>
+            </div>
+        </div>
+        <div class="btn-row">
+            <button class="primary" id="generateBtn">🎯 Подобрать билд</button>
+            <button id="resetBtn">Сбросить</button>
+        </div>
+    </div>
+
+    <!-- Инфо-бар с архетипом -->
+    <div class="info-bar" id="infoBar">
+        <span class="arch-label" id="archLabel"></span>
+        <div class="stats-summary" id="statsSummary"></div>
+        <span class="score-badge" id="scoreBadge"></span>
+    </div>
+
+    <!-- Сетка перков -->
+    <div class="perk-grid" id="perkGrid">
+        <div class="placeholder">Введите характеристики братка и нажмите «Подобрать билд»</div>
+    </div>
+</div>
+
+<!-- Модальное окно выбора архетипа -->
+<div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+        <h3>Братец подходит под несколько ролей</h3>
+        <div class="archetype-list" id="archetypeList"></div>
+        <button id="modalCancel">Отмена</button>
+    </div>
+</div>
+
+<footer class="footer">
+    Генератор выполнил <strong>York XIII</strong> |
+    <a href="https://youtube.com/@yorkxiii" target="_blank">
+        <svg class="youtube-icon" viewBox="0 0 24 24">
+            <path fill="#FF0000" d="M23.5 6.2s-.2-1.7-.9-2.4c-.9-.9-1.9-.9-2.4-1C16.8 2.5 12 2.5 12 2.5h0s-4.8 0-8.2.3c-.5.1-1.5.1-2.4 1C.7 4.5.5 6.2.5 6.2S0 8.1 0 10v2c0 1.9.5 3.8.5 3.8s.2 1.7.9 2.4c.9.9 2.1.9 2.7 1 2 .2 7.9.3 7.9.3s4.8 0 8.2-.3c.5-.1 1.5-.1 2.4-1 .7-.7.9-2.4.9-2.4S24 13.9 24 12v-2c0-1.9-.5-3.8-.5-3.8z"/>
+            <path fill="white" d="M9.5 15.2l6.3-3.2-6.3-3.2z"/>
+        </svg>
+        YouTube
+    </a>
+</footer>
+
+<script src="backgrounds.js"></script>
+<script>
+
+// ==================== ДАННЫЕ ПЕРКОВ ====================
+const perks = [
+    { name: "Ученик", category: "normal", tier: 1, order: 9, icon: "icons/Student.png", description: "Всё можно изучить, если прикладывать усилия. Персонаж с навыком 'Ученик' получает дополнительно <span class='green'>20%</span> опыта за бой. По достижении одиннадцатого уровня он получит дополнительный навык, а этот станет неактивным. При выборе происхождения 'Погонщики рабов' непрощённые получат дополнительный навык на седьмом уровне." },
+    { name: "Здоровяк", category: "normal", tier: 1, order: 3, icon: "icons/Colossus.png", description: "К бою готов! Увеличивает ОЗ на <span class='green'>25%</span>, что снижает шанс получить травму, когда персонажу наносят урон." },
+    { name: "Быстрая адаптация", category: "normal", tier: 1, order: 1, icon: "icons/Fast Adaptation.png", description: "Подстройся под движения противника! Персонаж получает <span class='green'>+10%</span> к шансу на попадание за каждый промах по врагу. Бонус накапливается, пока удар не достигнет цели." },
+    { name: "Следопыт", category: "normal", tier: 1, order: 6, icon: "icons/Path.png", description: "Персонажу с этим навыком понадобится на <span class='green'>1</span> ОД меньше при передвижении по любой местности вплоть до минимума в 2 ОД за клетку, а затраты выносливости снижены в 2 раза. Смена высоты теперь не требует дополнительных затрат ОД." },
+    { name: "Передышка", category: "normal", tier: 1, order: 8, icon: "icons/Recover.png", description: "Становится доступным умение 'Передышка', позволяющее пропустить ход, чтобы снизить накопленную усталость на <span class='green'>50%</span>." },
+    { name: "Выдержка", category: "normal", tier: 2, order: 14, icon: "icons/Resilient.png", description: "Один за всех и все за одного! Время действия любого отрицательного эффекта, имеющего продолжительность (отравлен, очарован), уменьшено на <span class='green'>1</span> ход. Эффекты, слабеющие со временем (гоблинский яд и т.п.), ослабляются до своего минимума с самого начала действия." },
+    { name: "Сумки и пояса", category: "normal", tier: 1, order: 5, icon: "icons/Bags.png", description: "Становятся доступны две дополнительные ячейки. Помещённые в поясные сумки вещи, за исключением двуручного оружия, больше не дают штрафов к выносливости. *Примечание: бинты, противоядие и гоблинский яд дают штраф к выносливости вопреки описанию." },
+    { name: "В яблочко", category: "normal", tier: 2, order: 11, icon: "icons/Bull.png", description: "Ровно промеж глаз! Штраф к точности попадания по цели вне прямой линии огня снижается с <span class='red'>75%</span> до <span class='red'>50%</span> для любого стрелкового и метательного оружия." },
+    { name: "Твердолобый", category: "normal", tier: 2, order: 15, icon: "icons/Steel.png", description: "Попадания по голове больше не вызывают критических повреждений у данного персонажа, что также снижает вероятность получения травм головы." },
+    { name: "Девять жизней", category: "normal", tier: 1, order: 4, icon: "icons/Nine Lives.png", description: "Один раз за бой, получив смертельный удар, персонаж выживет с парой ОЗ. Все отрицательные эффекты, наносящие урон (отравление, кровотечение), при этом излечиваются. Следующее попадание, вполне вероятно, всё же прикончит его, но улучшенная защита до следующего хода персонажа поможет пережить и это." },
+    { name: "Воодушевление", category: "normal", tier: 3, order: 24, icon: "icons/Rally.png", description: "Становится доступным умение 'Воодушевление', с помощью которого можно повысить боевой дух ближайших союзников, если они нерешительны или вовсе бегут с поля боя. Чем выше решимость персонажа, который применяет умение, тем выше шанс на успех." },
+    { name: "Провокация", category: "normal", tier: 3, order: 25, icon: "icons/Taunt.png", description: "Становится доступным умение 'Провокация', которое заставляет противников забыть о защите и броситься в атаку на персонажа, применившего умение, вместо более предпочтительных целей." },
+    { name: "Адреналин", category: "normal", tier: 1, order: 7, icon: "icons/Adrenalin.png", description: "Становится доступным умение 'Адреналин', позволяющее персонажу действовать первым на следующий ход, опережая противников. Почувствуй пульсацию адреналина в своих венах!" },
+    { name: "Уклонение", category: "normal", tier: 2, order: 12, icon: "icons/Dodge.png", description: "Слишком быстр для тебя! Персонаж получает <span class='green'>15%</span> от текущего значения инициативы в качестве бонуса к защите в ближнем и дальнем бою." },
+    { name: "Сила воли", category: "normal", tier: 2, order: 13, icon: "icons/Mind.png", description: "Железная воля не позволит сбиться с праведного пути. Решимость увеличивается на <span class='green'>25%</span>." },
+    { name: "Одарённый", category: "normal", tier: 2, order: 17, icon: "icons/Gifted.png", description: "Одарённому наёмнику живётся легче. Персонаж моментально получит уровень (не учитывающийся в счетчике уровней персонажа), позволяющий увеличить его характеристики на максимально возможное значение без учёта талантов." },
+    { name: "Командная работа", category: "normal", tier: 3, order: 18, icon: "icons/Back.png", description: "Один в поле не воин! Бонус к шансу попасть в ближнем бою удваивается с базовых +5% до <span class='green'>+10%</span> за каждого союзника, окружившего и отвлекающего цель." },
+    { name: "Предвидение", category: "normal", tier: 3, order: 19, icon: "icons/Antisipation.png", description: "С навыком 'Предвидение' персонаж, атакованный любым стрелковым оружием, получает бонус к защите в дальнем бою. За каждую клетку до стрелка защита увеличивается на <span class='green'>1 + 10%</span> от текущего значения защиты персонажа в дальнем бою, но не менее, чем на <span class='green'>+10</span> к защите в дальнем бою." },
+    { name: "Мастер щита", category: "normal", tier: 3, order: 20, icon: "icons/Shield.png", description: "Персонаж обучается обращению с щитом, чтобы отклонять удары при помощи щита, а не просто блокировать их. Защитные бонусы щита увеличиваются на <span class='green'>25%</span>. Эффект также распространяется на бонус от умения 'Стена щитов'. Кроме того, урон принимаемый щитом уменьшен на <span class='green'>50%</span> вплоть до минимума в 1 единицу прочности. Умение 'Отбрасывание' получает <span class='green'>+15%</span> к шансу на попадание." },
+    { name: "Двужильный", category: "normal", tier: 3, order: 21, excludes: ["Ловкач"], icon: "icons/Brawny.png", description: "Штраф к выносливости и инициативе от надетых брони и шлема сокращается на <span class='green'>30%</span>." },
+    { name: "Калечащие удары", category: "normal", tier: 1, order: 2, icon: "icons/Crippling.png", description: "Покалечь врага! Снижает порог урона, необходимый для нанесения травм, на <span class='green'>33%</span> для ближних и дальних атак." },
+    { name: "Палач", category: "normal", tier: 2, order: 10, icon: "icons/Execut.png", description: "Наносите дополнительные <span class='green'>20%</span> урона по целям, страдающим от любой травмы, например, от сломанной руки." },
+    { name: "Рокировка", category: "normal", tier: 3, order: 23, icon: "icons/Rotation.png", description: "Становится доступным умение 'Рокировка', позволяющее двум персонажам поменяться местами, игнорируя зону контроля противника, при условии, что они оба не оглушены, не обездвижены или не выведены из строя другим способом." },
+    { name: "Мастер булавы", category: "mastery", tier: 4, order: 26, icon: "icons/Mace.png", description: "Персонаж становится мастером булавы и знает как поразить своих врагов, бронированных или нет. Удары булавой тратят на <span class='green'>25%</span> меньше выносливости. Оглушающие умения получают <span class='green'>100%</span> шанс срабатывания, если противник не обладает невосприимчивостью к оглушению. Буздыхан теперь не получает штрафа к попаданию при атаке целей, стоящих рядом." },
+    { name: "Мастер кистеня", category: "mastery", tier: 4, order: 27, icon: "icons/Flail.png", description: "Персонаж становится мастером кистеня и знает как обходить щит противника. Удары кистенём тратят на <span class='green'>25%</span> меньше выносливости. При попадании в голову умением 'Отбивная' на <span class='green'>+10%</span> больше урона игнорирует броню. Умения 'Удар в голову' и 'Град' теперь игнорируют прибавку защиты от щитов. Шанс попасть умением 'Мельница' увеличивается на <span class='green'>+5%</span>." },
+    { name: "Мастер молота", category: "mastery", tier: 4, order: 28, icon: "icons/Hammer.png", description: "Персонаж становится мастером молота и знает как сражаться с противниками в тяжёлой броне. Удары молотом тратят на <span class='green'>25%</span> меньше выносливости. Умения 'Пробить броню' и 'Расколоть броню' теперь наносят на <span class='green'>33%</span> больше урона броне. Шанс попасть умением 'Разрушение' увеличивается на <span class='green'>+5%</span>. Полекс теперь не получает штрафа к попаданию при атаке целей, стоящих рядом." },
+    { name: "Мастер топора", category: "mastery", tier: 4, order: 29, icon: "icons/Axe.png", description: "Персонаж становится мастером топора и знает как крушить щиты. Удары топором тратят на <span class='green'>25%</span> меньше выносливости. Умение 'Раскол щита' наносит на <span class='green'>50%</span> больше урона щитам при использовании топоров. Шанс попасть умением 'Круговой удар' увеличивается на <span class='green'>+5%</span>. Секира теперь не получает штрафа к попаданию при атаке целей, стоящих рядом." },
+    { name: "Мастер тесака", category: "mastery", tier: 4, order: 30, icon: "icons/Cleaver.png", description: "Персонаж становится мастером тесака и знает как наносить ужасные раны. Удары тесаком тратят на <span class='green'>25%</span> меньше выносливости. Урон от кровотечения, вызванного тесаками и кнутами, удвоен до <span class='green'>10</span> и <span class='green'>20</span> единиц за ход, соответственно. Умение 'Обезоружить' теперь имеет лишь <span class='red'>10%</span> штрафа к попаданию вместо исходных <span class='red'>20%</span>." },
+    { name: "Мастер меча", category: "mastery", tier: 4, order: 31, icon: "icons/Sword.png", description: "Персонаж становится мастером искусства боя на мечах и знает как превратить ошибки противника в своё преимущество. Удары мечом тратят на <span class='green'>25%</span> меньше выносливости. Умение 'Контратака' теперь не имеет штрафа к попаданию. Умение 'Вспарывание' отныне требует нанесения на <span class='green'>50%</span> меньше повреждений для нанесения ранения. Умения 'Выпад' и 'Размах' вместо штрафа получают <span class='green'>+5%</span> к шансу на попадание." },
+    { name: "Мастер кинжала", category: "mastery", tier: 4, order: 32, icon: "icons/Dagger.png", description: "Персонаж становится мастером быстрого и смертоносного кинжала. Удары кинжалом затрачивают на <span class='green'>25%</span> меньше выносливости. Умения 'Укол', 'Прокол', 'Убийственный удар', 'Пробитие' и 'Вертел' теперь тратят меньше ОД, что потенциально даёт возможность проводить дополнительную атаку в каждом ходу." },
+    { name: "Мастер древкового оружия", category: "mastery", tier: 4, order: 33, icon: "icons/Polearm.png", description: "Персонаж становится мастером древкового оружия и знает как держать врага на расстоянии. Удары древковым оружием тратят на <span class='green'>25%</span> меньше выносливости. Стоимость умений древкового оружия теперь уменьшена до <span class='green'>5</span> ОД, кроме того при атаке целей, стоящих рядом, отсутствует штраф к попаданию." },
+    { name: "Мастер копья", category: "mastery", tier: 4, order: 34, icon: "icons/Spear.png", description: "Персонаж становится мастером копья и знает как держать врага на расстоянии. Удары копьём тратят на <span class='green'>25%</span> меньше выносливости. Умение 'Стена копий' не перестаёт действовать в случае успешного подхода противника, а продолжает действовать при попытках подхода следующих противников. Рунка и боевая коса теперь не получают штрафа к попаданию при атаке целей, стоящих рядом." },
+    { name: "Мастер арбалета и пищали", category: "mastery", tier: 4, order: 35, icon: "icons/Crossbow.png", description: "Станьте мастером арбалета и пищали, пригвоздите врага! Стрельба из арбалета и пищали тратит на <span class='green'>25%</span> меньше усталости. Дополнительные <span class='green'>20%</span> урона, наносимого арбалетом, теперь игнорируют броню (урон по ОЗ). Ручницы отныне требуют лишь <span class='green'>6</span> ОД на перезарядку и могут стрелять каждый ход вместо каждого второго." },
+    { name: "Мастер лука", category: "mastery", tier: 4, order: 36, icon: "icons/Bow.png", description: "Персонаж становится мастером лука и знает как издалека осыпать врагов градом из стрел. Стрельба из лука тратит на <span class='green'>25%</span> меньше выносливости. Острота зрения и максимальная дальность стрельбы из лука увеличиваются на <span class='green'>+1</span>." },
+    { name: "Мастер метательного оружия", category: "mastery", tier: 4, order: 37, icon: "icons/Throw.png", description: "Персонаж становится мастером метательного оружия и знает как изранить или даже убить врага раньше, чем тот успеет приблизиться. Броски метательного оружия тратят на <span class='green'>25%</span> меньше выносливости. Урон увеличивается на <span class='green'>30%</span> при броске с расстояния в две клетки. Урон увеличивается на <span class='green'>20%</span> при броске с расстояния в три клетки." },
+    { name: "Изворотливый", category: "normal", tier: 5, order: 42, icon: "icons/Footwork.png", description: "Становится доступным умение 'Изворотливость', позволяющее покидать зону контроля противника без его атаки, при помощи обманных движений ногами." },
+    { name: "Ловкость рук", category: "normal", tier: 2, order: 16, icon: "icons/Quick.png", description: "Не это ли ищешь? Смена предметов в бою, за исключением щитов, не тратит ОД один раз за ход." },
+    { name: "Упорный", category: "normal", tier: 3, order: 22, icon: "icons/Relentless.png", description: "Не останавливайся! Что бы ни случилось, инициатива персонажа с навыком 'Упорный' уменьшается лишь на <span class='green'>50%</span> от накопившейся усталости, вместо <span class='red'>100%</span>. Кроме того, ожидание в бою больше не даёт штрафа к инициативе персонажа на следующий ход." },
+    { name: "Подавление", category: "normal", tier: 5, order: 39, icon: "icons/Over.png", description: "Персонаж обучается использовать преимущества высокой инициативы для подавления противников, лишая их концентрации и вынуждая совершать ошибки в нападении. При каждой атаке противника, успешной или нет, на него накладывается статус 'Подавлен', который снижает на <span class='green'>10%</span> навыки ближнего и дальнего боя на один ход. Действует только на противников, ещё не совершивших свой ход. Эффект суммируется с каждой атакой и может быть применён за один удар сразу к нескольким целям." },
+    { name: "Одинокий волк", category: "normal", tier: 5, order: 40, icon: "icons/Lonewolf.png", description: "Я лучше справляюсь в одиночку. При отсутствии союзника на расстоянии 3-х клеток персонаж получает бонус в <span class='green'>15%</span> к дальнему и ближнему бою, защите в ближнем и дальнем бою, а также к решимости." },
+    { name: "Длина имеет значение", category: "normal", tier: 5, order: 38, icon: "icons/Reach.png", description: "Персонаж обучается обращению с двуручным оружием, чтобы не подпускать врага, и, тем самым, не давать ему возможности нанести точный удар. Каждое попадание двуручным оружием увеличивает исходную защиту в ближнем бою на <span class='green'>+5</span>, вплоть до +25, пока не наступит следующий ход этого персонажа. При атаке нескольких целей одновременно будет добавлено по <span class='green'>+5</span> к защите в ближнем бою за каждого поражённого противника. Бонус теряется, если сменить оружие." },
+    { name: "Горемыка", category: "normal", tier: 5, order: 41, icon: "icons/Underdog.png", description: "Да ладно, я уже привык. Штрафы к защите при окружении врагами больше не действуют на данного персонажа. Эффект от навыка 'Командная работа' отменяется для атакующего, вместо этого шанс попадания рассчитывается по обычной механике." },
+    { name: "Закалённый в боях", category: "normal", tier: 6, order: 46, icon: "icons/Battleforge.png", description: "Стань специалистом по тяжёлой броне! Урон, наносимый доспехам персонажа, снижается на <span class='green'>%</span> от текущей суммарной прочности надетых брони и шлема. Чем крепче броня персонажа, тем больше преимущество. Не влияет на урон от психических атак или иных эффектов, но помогает избежать их." },
+    { name: "Ловкач", category: "normal", tier: 6, order: 45, excludes: ["Двужильный"], icon: "icons/Nimble.png", description: "Стань специалистом по лёгкой броне! Благодаря проворности в уклонении и парировании, входящий урон по ОЗ сокращается на <span class='green'>60%</span>, но это уменьшение снижается с ростом штрафа к выносливости от доспехов и шлема, если он превышает <span class='red'>15</span> единиц. Чем легче броня и шлем персонажа, тем больше снижение урона. Навык 'Двужильный' не влияет на значение уменьшения урона. Не влияет на урон от психических атак и иных эффектов, но помогает их избежать." },
+    { name: "Берсерк", category: "normal", tier: 6, order: 43, icon: "icons/Berserk.png", description: "Один раз за ход, при убийстве врага, персонаж восстанавливает <span class='green'>4</span> ОД. Невозможно превысить максимальное количество ОД персонажа, а также восстановить больше 4 ОД за одну атаку." },
+    { name: "Боевое безумие", category: "normal", tier: 7, order: 49, icon: "icons/Killing.png", description: "Познай боевое безумие! Убийство врага увеличивает весь урон на <span class='green'>25%</span> на два хода. Эффект не суммируется, но следующее убийство восстанавливает длительность навыка." },
+    { name: "Охотник за головами", category: "normal", tier: 6, order: 44, icon: "icons/Headhunter.png", description: "Целься в голову! За каждое попадание по голове противника, персонаж получает <span class='green'>100%</span> шанс попадания в голову при следующем своём ударе. Следующий успешный удар сбрасывает действие навыка." },
+    { name: "Устрашающий", category: "normal", tier: 7, order: 47, icon: "icons/Fearsome.png", description: "Заставь их разбежаться в ужасе! Любая атака персонажа с навыком 'Устрашающий', наносящая хотя бы одну единицу урона ОЗ, инициирует проверку боевого духа противника, обычно происходящую только при нанесении 15 или более единиц урона, со штрафом к его решимости в <span class='red'>15%</span> от решимости этого персонажа." },
+    { name: "Дуэлянт", category: "normal", tier: 7, order: 48, icon: "icons/Duelist.png", description: "Стань единым целым со своим оружием и поражай уязвимые точки в защите противника! Если вторая рука персонажа с навыком 'Дуэлянт' свободна, держит баклер или сжимает метательное приспособление (например, ловчую сеть или фляжку с кислотой), то дополнительные <span class='green'>+25%</span> от наносимого урона будут игнорировать броню (урон по ОЗ). Не действует с двуручным оружием." },
+    { name: "Непоколебимый", category: "normal", tier: 7, order: 50, icon: "icons/Indomitable.png", description: "Становится доступным умение 'Непоколебимый', которое на один ход предоставляет: уменьшение входящего урона на <span class='green'>50%</span>; невосприимчивость к оглушению, отталкиванию или захвату." }
+];
+
+// ==================== ТАБЛИЦА РОСТА ====================
+const growth = {
+    hp:       [{min:2, avg:2.8, max:4}, {min:3, avg:3.5, max:4}, {min:4, avg:4, max:4}, {min:4, avg:4.5, max:5}],
+    fat:      [{min:2, avg:2.8, max:4}, {min:3, avg:3.5, max:4}, {min:4, avg:4, max:4}, {min:4, avg:4.5, max:5}],
+    matk:     [{min:1, avg:1.8, max:3}, {min:2, avg:2.5, max:3}, {min:3, avg:3, max:3}, {min:3, avg:3.5, max:4}],
+    mdef:     [{min:1, avg:1.8, max:3}, {min:2, avg:2.5, max:3}, {min:3, avg:3, max:3}, {min:3, avg:3.5, max:4}],
+    ratk:     [{min:2, avg:2.8, max:4}, {min:3, avg:3.5, max:4}, {min:4, avg:4, max:4}, {min:4, avg:4.5, max:5}],
+    rdef:     [{min:2, avg:2.8, max:4}, {min:3, avg:3.5, max:4}, {min:4, avg:4, max:4}, {min:4, avg:4.5, max:5}],
+    res:      [{min:2, avg:2.8, max:4}, {min:3, avg:3.5, max:4}, {min:4, avg:4, max:4}, {min:4, avg:4.5, max:5}],
+    init:     [{min:3, avg:3.8, max:5}, {min:4, avg:4.5, max:5}, {min:5, avg:5, max:5}, {min:5, avg:5.5, max:6}]
+};
+
+// ==================== ШАБЛОНЫ БИЛДОВ ====================
+const buildTemplates = {
+    "Лучник": ["Ученик", "Быстрая адаптация", "Калечащие удары", "Палач", "В яблочко", "Мастер лука", "Подавление", "Изворотливый", "Берсерк", "Ловкач", "Боевое безумие"], 
+    "Арбалетчик/Метатель": ["Ученик", "Сумки и пояса", "Передышка", "Ловкость рук", "Мастер арбалета и пищали", "Мастер метательного оружия", "Изворотливый", "Берсерк", "Ловкач", "Дуэлянт", "Боевое безумие"],
+    "Двуручник": ["Здоровяк", "Передышка", "Ученик", "Твердолобый", "Двужильный", null, "Длина имеет значение", "Горемыка", "Берсерк", "Закалённый в боях", "Боевое безумие"],
+    "Дуэлянт": ["Здоровяк", "Ученик", "Уклонение", "Упорный", null, "Подавление", "Горемыка", "Берсерк", "Ловкач", "Дуэлянт", "Боевое безумие"],
+    "Танк лёгкий": ["Здоровяк", "Ученик", "Передышка", "Уклонение", "Мастер щита", "Упорный", "Рокировка", "Провокация", "Горемыка", "Ловкач", "Непоколебимый"],
+    "Танк тяжёлый": ["Здоровяк", "Ученик", "Передышка", "Твердолобый", "Мастер щита", "Двужильный", "Рокировка", "Провокация", "Горемыка", "Закалённый в боях", "Непоколебимый"],
+    "Сержант лёгкий": ["Здоровяк", "Следопыт", "Передышка", "Ученик", "Уклонение", "Сила воли", "Одарённый", "Воодушевление", "Мастер древкового оружия", "Изворотливый", "Ловкач"],
+    "Сержант тяжёлый": ["Здоровяк", "Передышка", "Ученик", "Сила воли", "Твердолобый", "Одарённый", "Двужильный", "Воодушевление", "Мастер древкового оружия", "Изворотливый", "Закалённый в боях"],
+    "Второрядник лёгкий": ["Здоровяк", "Следопыт", "Передышка", "Ученик", "Уклонение", "Упорный", "Мастер древкового оружия", "Изворотливый", "Берсерк", "Ловкач", "Боевое безумие"],
+    "Второрядник тяжёлый": ["Здоровяк", "Следопыт", "Передышка", "Ученик", "Твердолобый", "Двужильный", "Мастер древкового оружия", "Изворотливый", "Берсерк", "Закалённый в боях", "Боевое безумие"],
+    "Гибрид": ["Передышка", "Ученик", "Уклонение", "Ловкость рук", "Упорный", "Мастер меча", "Мастер метательного оружия", "Берсерк", "Ловкач", "Дуэлянт", "Боевое безумие"],
+	"Рапирщик": ["Здоровяк", "Передышка", "Ученик", "Уклонение", "Упорный", "Мастер меча", "Изворотливый", "Берсерк", "Ловкач", "Дуэлянт", "Боевое безумие"],
+    "Кинжальщик": ["Здоровяк", "Ученик", "Быстрая адаптация", "Мастер щита", "Мастер кинжала", "Подавление", "Горемыка", "Берсерк", "Ловкач", "Командная работа", "Боевое безумие"],
+    "Спартанец": ["Здоровяк", "Ученик", "Передышка", "Уклонение", "Мастер копья", "Мастер щита", "Упорный", "Рокировка", "Горемыка", "Ловкач", "Непоколебимый"],
+    "Безфатиговый тяж": ["Здоровяк", "Ученик", "Твердолобый", "Командная работа", "Двужильный", null, "Длина имеет значение", "Горемыка", "Следопыт", "Закалённый в боях", "Боевое безумие"]
+};
+
+const reachMasteries = ["Мастер булавы", "Мастер кистеня", "Мастер молота", "Мастер топора", "Мастер тесака", "Мастер меча"];
+const duelistMasteries = ["Мастер булавы", "Мастер кистеня", "Мастер молота", "Мастер топора", "Мастер тесака", "Мастер меча"];
+
+
+// ==================== ЗАМЕНА null НА КОНКРЕТНЫЕ МАСТЕРСТВА ====================
+function fillMasterySlots(build) {
+    const filled = build.map(perkName => {
+        if (perkName === null && build.includes("Длина имеет значение")) {
+            return reachMasteries[Math.floor(Math.random() * reachMasteries.length)];
+        }
+        if (perkName === null && build.includes("Дуэлянт")) {
+            return duelistMasteries[Math.floor(Math.random() * duelistMasteries.length)];
+        }
+        if (perkName === null) {
+            return reachMasteries[Math.floor(Math.random() * reachMasteries.length)];
+        }
+        return perkName;
+    });
+
+    // Если выпал Мастер кистеня — меняем один перк на Охотник за головами
+    if (filled.includes("Мастер кистеня") && !filled.includes("Охотник за головами")) {
+        const expendable = [
+            "Длина имеет значение",
+            "Здоровяк",
+            "Следопыт",
+            "Подавление"
+        ];
+
+        for (const perk of expendable) {
+            const index = filled.indexOf(perk);
+            if (index !== -1) {
+                filled[index] = "Охотник за головами";
+                break;
+            }
+        }
+    }
+
+    return filled;
+}
+
+// ==================== ОТРИСОВКА ПЕРКОВ ====================
+let animationTimers = [];
+
+function drawBuild(buildNames) {
+    const grid = document.getElementById("perkGrid");
+    animationTimers.forEach(clearTimeout);
+    animationTimers = [];
+    grid.innerHTML = "";
+
+    const buildPerks = buildNames.map(name => perks.find(p => p.name === name)).filter(Boolean);
+    buildPerks.sort((a, b) => a.order - b.order);
+
+    buildPerks.forEach((perk, index) => {
+        const timer = setTimeout(() => {
+            const card = document.createElement("div");
+            card.className = "perk";
+            if (perk.name === "Ученик") card.classList.add("student");
+            const display = getPerkDisplay(perk);
+card.innerHTML = `
+    <img class="perk-icon" src="${perk.icon}" onerror="this.style.display='none'">
+    <div class="perk-title">${display.name}</div>
+    <div class="tooltip">${display.description}</div>
+`;
+            grid.appendChild(card);
+            setTimeout(() => card.classList.add("show"), 20);
+        }, index * 200);
+        animationTimers.push(timer);
+    });
+}
+
+// ==================== ОСНОВНАЯ ЛОГИКА ====================
+function getInputStats() {
+    return {
+        hp: parseInt(document.getElementById("hp").value) || 50,
+        fat: parseInt(document.getElementById("fat").value) || 90,
+        res: parseInt(document.getElementById("res").value) || 30,
+        init: parseInt(document.getElementById("init").value) || 100,
+        matk: parseInt(document.getElementById("matk").value) || 47,
+        ratk: parseInt(document.getElementById("ratk").value) || 32,
+        mdef: parseInt(document.getElementById("mdef").value) || 0,
+        rdef: parseInt(document.getElementById("rdef").value) || 0
+    };
+}
+
+function getStarValues() {
+    return {
+        hp: parseInt(document.getElementById("hpStars").value),
+        fat: parseInt(document.getElementById("fatStars").value),
+        res: parseInt(document.getElementById("resStars").value),
+        init: parseInt(document.getElementById("initStars").value),
+        matk: parseInt(document.getElementById("matkStars").value),
+        ratk: parseInt(document.getElementById("ratkStars").value),
+        mdef: parseInt(document.getElementById("mdefStars").value),
+        rdef: parseInt(document.getElementById("rdefStars").value)
+    };
+}
+
+
+function getExpectedInvestments(archetype) {
+    const priorities = {
+        "Лучник":                { main: ["ratk", "init", "rdef"], fallback: ["hp", "fat"], forbidden: ["matk"] },
+        "Арбалетчик/Метатель":   { main: ["ratk", "init", "rdef"], fallback: ["hp", "fat"], forbidden: ["matk"] },
+        "Двуручник":             { main: ["matk", "mdef", "fat"], fallback: ["hp", "res"], forbidden: ["ratk"] },
+        "Дуэлянт":               { main: ["matk", "mdef", "init"], fallback: ["hp", "fat"], forbidden: ["ratk"] },
+        "Танк лёгкий":           { main: ["mdef", "init", "hp"], fallback: ["fat", "res"], forbidden: ["ratk"] },
+        "Танк тяжёлый":          { main: ["mdef", "fat", "hp"], fallback: ["res"], forbidden: ["ratk"] },
+        "Сержант лёгкий":        { main: ["res", "init", "rdef"], fallback: ["hp", "fat"], forbidden: ["ratk"] },
+        "Сержант тяжёлый":       { main: ["res", "fat", "rdef"], fallback: ["hp"], forbidden: ["ratk"] },
+        "Второрядник лёгкий":    { main: ["matk", "rdef", "init"], fallback: ["hp", "fat"], forbidden: ["ratk"] },
+        "Второрядник тяжёлый":   { main: ["matk", "rdef", "fat"], fallback: ["hp"], forbidden: ["ratk"] },
+        "Гибрид":                { main: ["matk", "ratk", "init"], fallback: ["hp", "mdef", "fat"], forbidden: [] },
+		"Рапирщик":            	 { main: ["matk", "init", "fat"], fallback: ["hp", "mdef"], forbidden: ["ratk"] },
+		"Кинжальщик":            { main: ["matk", "mdef", "init"], fallback: ["hp", "fat"], forbidden: ["ratk"] },
+		"Спартанец":             { main: ["mdef", "fat", "hp"], fallback: ["matk", "init"], forbidden: ["ratk"] },
+		"Безфатиговый тяж":      { main: ["matk", "mdef", "hp"], fallback: ["res"], forbidden: ["ratk", "fat"] }
+    };
+
+    const p = priorities[archetype] || { main: ["matk", "mdef", "fat"], fallback: ["hp"], forbidden: ["ratk"] };
+    const investments = {};
+    const allStats = ["hp", "fat", "res", "init", "matk", "ratk", "mdef", "rdef"];
+
+    // Всем по нулям
+    for (const stat of allStats) investments[stat] = 0;
+
+    // Основные — 8 каждая (3 стата × 8 = 24)
+    for (const stat of p.main) {
+        investments[stat] = 8;
+    }
+    // Вторичные — делим 6 прокачек между ними поровну
+    const fb = p.fallback || [];
+    if (fb.length > 0) {
+        const perFallback = Math.floor(6 / fb.length);
+        const remainder = 6 % fb.length;
+        for (let i = 0; i < fb.length; i++) {
+            investments[fb[i]] = perFallback + (i < remainder ? 1 : 0);
+        }
+    }
+    // Запрещённые — 0
+    for (const stat of (p.forbidden || [])) {
+        investments[stat] = 0;
+    }
+
+    return investments;
+}
+
+function calcFinalsForArchetype(inputStats, stars, archetype) {
+    const investments = getExpectedInvestments(archetype);
+    const finals = {};
+    for (const key of Object.keys(inputStats)) {
+        const gain = growth[key][stars[key]];
+        const levels = investments[key] || 0;
+        finals[key] = Math.round(inputStats[key] + gain.avg * levels);
+    }
+    return finals;
+}
+
+function getThresholdsForArchetype(archetype) {
+    const thresholds = {
+        "Лучник": {
+            min: { ratk: 85 }
+        },
+        "Арбалетчик/Метатель": {
+            min: { ratk: 70 },
+            max: { ratk: 85 }   // < 85
+        },
+        "Двуручник": {
+            min: { matk: 85, mdef: 20, fat: 130 }
+        },
+        "Дуэлянт": {
+            min: { matk: 80, init: 140 }
+        },
+        "Танк лёгкий": {
+            min: { mdef: 35, init: 140, hp: 80 },
+            max: { matk: 70 }   // < 70 — опционально, если нужно
+        },
+        "Танк тяжёлый": {
+            min: { mdef: 35, fat: 140, hp: 85 },
+            max: { matk: 70 }   // < 70
+        },
+        "Сержант лёгкий": {
+            min: { res: 80, init: 130 }
+        },
+        "Сержант тяжёлый": {
+            min: { res: 80, fat: 130 }
+        },
+        "Второрядник лёгкий": {
+            min: { matk: 75, init: 130 }
+        },
+        "Второрядник тяжёлый": {
+            min: { matk: 75, fat: 130 }
+        },
+        "Гибрид": {
+            min: { matk: 70, ratk: 70, init: 130 }
+        },
+		"Рапирщик": { 
+			min: { matk: 90, init: 140, fat: 115 } 
+		},
+        "Кинжальщик": { 
+			min: { matk: 75, mdef: 30, init: 120 } 
+		},
+        "Спартанец": { 
+			min: { matk: 60, fat: 100 }, max: { matk: 70, mdef: 20} 
+		},
+        "Безфатиговый тяж": { 
+			min: { matk: 75, mdef: 25 }, max: { fat: 115 } 
+		}
+    };
+    return thresholds[archetype] || { min: {} };
+}
+
+function meetsThresholds(stats, archetype) {
+    const t = getThresholdsForArchetype(archetype);
+    let totalShortfall = 0;
+
+    // Проверяем нижние пороги и считаем недобор
+    for (const [stat, minVal] of Object.entries(t.min || {})) {
+        const val = stats[stat] || 0;
+        if (val < minVal) {
+            totalShortfall += (minVal - val);
+        }
+    }
+    // Проверяем верхние пороги
+    for (const [stat, maxVal] of Object.entries(t.max || {})) {
+        const val = stats[stat] || 0;
+        if (val >= maxVal) return false; // превышение не спасаем
+    }
+
+    // Проходим, если недобор ≤ 4 (Одарённый спасёт)
+    return totalShortfall <= 4;
+}
+
+function calculateScore(finals, stars, archetype) {
+    const t = getThresholdsForArchetype(archetype);
+    const priorities = getExpectedInvestments(archetype);
+    
+    let score = 0;
+    let totalChecks = 0;
+
+    // 1. Очки за превышение порогов (как раньше)
+    for (const [stat, minVal] of Object.entries(t.min || {})) {
+        const val = finals[stat] || 0;
+        if (val >= minVal) {
+            score += (val - minVal);
+            totalChecks++;
+        }
+    }
+    for (const [stat, maxVal] of Object.entries(t.max || {})) {
+        const val = finals[stat] || 0;
+        if (val < maxVal) {
+            score += (maxVal - val);
+            totalChecks++;
+        }
+    }
+
+    // 2. Бонус за звёзды в ключевых характеристиках
+    const starBonus = { 0: 0, 1: 3, 2: 6, 3: 10 };
+    
+    for (const [stat, investment] of Object.entries(priorities)) {
+        const starCount = stars[stat] || 0;
+        
+        if (investment >= 8) {
+            // Основная характеристика — полный бонус
+            score += starBonus[starCount];
+            totalChecks++;
+        } else if (investment >= 3) {
+            // Вторичная — половинный бонус
+            score += Math.floor(starBonus[starCount] / 2);
+        }
+        // Запрещённые (investment === 0) — звёзды не дают бонуса, но и не штрафуют
+    }
+
+    // Средний счёт
+    return totalChecks > 0 ? Math.round(score / totalChecks) : 0;
+}
+
+function adjustBuildForShortfall(archetype, finals) {
+    const template = [...buildTemplates[archetype]];
+    const t = getThresholdsForArchetype(archetype);
+    let shortfall = 0;
+
+    // Считаем общий недобор по ключевым статам
+    for (const [stat, minVal] of Object.entries(t.min || {})) {
+        const val = finals[stat] || 0;
+        if (val < minVal) {
+            shortfall += (minVal - val);
+        }
+    }
+
+    // Недобора нет — возвращаем как есть
+    if (shortfall === 0) return template;
+
+    // Недобор больше 4 — не спасаем
+    if (shortfall > 4) return template;
+
+    // Одарённый уже есть — нечего менять
+    if (template.includes("Одарённый")) return template;
+
+    // Перки на замену (первый — самый expendable)
+    const replaceable = {
+        "Лучник": ["Подавление"],
+        "Арбалетчик/Метатель": ["Мастер арбалета и пищали"],
+        "Двуручник": ["Длина имеет значение"],
+        "Дуэлянт": ["Подавление"],
+        "Танк лёгкий": ["Здоровяк"],
+        "Танк тяжёлый": ["Здоровяк"],
+        "Сержант лёгкий": ["Следопыт"],
+        "Сержант тяжёлый": ["Мастер древкового оружия"],
+        "Второрядник лёгкий": ["Следопыт"],
+        "Второрядник тяжёлый": ["Следопыт"],
+        "Гибрид": ["Мастер меча"],
+        "Рапирщик": ["Здоровяк"],
+        "Кинжальщик": ["Мастер щита"],
+        "Спартанец": ["Непоколебимый"],
+        "Безфатиговый тяж": ["Командная работа"]
+    };
+
+    const repl = replaceable[archetype] || [];
+
+    // Одна замена
+    for (const perk of repl) {
+        const index = template.indexOf(perk);
+        if (index !== -1) {
+            template[index] = "Одарённый";
+            return template;
+        }
+    }
+
+    return template;
+}
+
+function generateBuild(archetype, inputStats, stars, isWeak = false) {
+    let template = buildTemplates[archetype];
+    if (!template) return;
+
+    const finals = calcFinalsForArchetype(inputStats, stars, archetype);
+
+    // Если боец проходит пороги — проверяем недобор и корректируем билд
+    if (!isWeak) {
+        template = adjustBuildForShortfall(archetype, finals);
+    }
+
+    const filled = fillMasterySlots([...template]);
+    const finalBuild = filled.slice(0, 11);
+    drawBuild(finalBuild);
+
+    document.getElementById("infoBar").classList.add("active");
+    document.getElementById("archLabel").textContent = isWeak
+        ? "⚠️ Братец так себе. Лучше уволить."
+        : "Архетип: " + archetype;
+    document.getElementById("statsSummary").innerHTML = `
+        <span>ОЗ: ${finals.hp}</span>
+        <span>Вын: ${finals.fat}</span>
+        <span>Ршм: ${finals.res}</span>
+        <span>Инц: ${finals.init}</span>
+        <span>АткБ: ${finals.matk}</span>
+        <span>АткД: ${finals.ratk}</span>
+        <span>ЗащБ: ${finals.mdef}</span>
+        <span>ЗащД: ${finals.rdef}</span>
+    `;
+    document.getElementById("scoreBadge").textContent = isWeak
+        ? "Финальные значения (11 ур.)"
+        : "Финальные значения (11 ур.)";
+}
+
+function statToLabel(key) {
+    const labels = {
+        hp: "ОЗ",
+        fat: "Вын",
+        res: "Ршм",
+        init: "Инц",
+        matk: "АткБ",
+        ratk: "АткД",
+        mdef: "ЗащБ",
+        rdef: "ЗащД"
+    };
+    return labels[key] || key;
+}
+
+function handleGenerate() {
+    const inputStats = getInputStats();
+    const stars = getStarValues();
+    const allArchetypes = Object.keys(buildTemplates);
+    const matching = [];
+
+    for (const archetype of allArchetypes) {
+        const finals = calcFinalsForArchetype(inputStats, stars, archetype);
+        if (meetsThresholds(finals, archetype)) {
+            const score = calculateScore(finals, stars, archetype);
+            matching.push({ archetype, finals, score });
+        }
+    }
+
+    if (matching.length === 0) {
+    let closestArch = null;
+    let closestDiff = Infinity;
+    let closestFinals = null;
+    let closestDetails = [];
+    const allArchetypes = Object.keys(buildTemplates);
+
+    for (const archetype of allArchetypes) {
+        const archFinals = calcFinalsForArchetype(inputStats, stars, archetype);
+        const t = getThresholdsForArchetype(archetype);
+        let totalDiff = 0;
+        let failed = false;
+        const details = [];
+
+        for (const [stat, minVal] of Object.entries(t.min || {})) {
+            const val = archFinals[stat] || 0;
+            if (val < minVal) {
+                const diff = minVal - val;
+                totalDiff += diff;
+                failed = true;
+                details.push(`${statToLabel(stat)}: ${val}/${minVal} (недобор ${diff})`);
+            }
+        }
+        for (const [stat, maxVal] of Object.entries(t.max || {})) {
+            const val = archFinals[stat] || 0;
+            if (val >= maxVal) {
+                const diff = val - maxVal + 1;
+                totalDiff += diff;
+                failed = true;
+                details.push(`${statToLabel(stat)}: ${val} (макс: <${maxVal}, превышение ${diff})`);
+            }
+        }
+
+        if (failed && totalDiff <= closestDiff) {
+            closestDiff = totalDiff;
+            closestArch = archetype;
+            closestFinals = archFinals;
+            closestDetails = details;
+        }
+    }
+
+    if (!closestFinals) {
+        const universal = {};
+        for (const key of Object.keys(inputStats)) {
+            universal[key] = Math.round(inputStats[key] + growth[key][stars[key]].avg * 3);
+        }
+        closestFinals = universal;
+    }
+
+    document.getElementById("infoBar").classList.add("active");
+    document.getElementById("archLabel").textContent = "⚠️ Братец так себе. Ближайший билд:";
+    document.getElementById("statsSummary").innerHTML = `
+        <span>ОЗ: ${closestFinals.hp}</span>
+        <span>Вын: ${closestFinals.fat}</span>
+        <span>Ршм: ${closestFinals.res}</span>
+        <span>Инц: ${closestFinals.init}</span>
+        <span>АткБ: ${closestFinals.matk}</span>
+        <span>АткД: ${closestFinals.ratk}</span>
+        <span>ЗащБ: ${closestFinals.mdef}</span>
+        <span>ЗащД: ${closestFinals.rdef}</span>
+    `;
+
+    let badgeText = "Финальные значения (11 ур.)";
+    if (closestDetails.length > 0) {
+        badgeText += ` — ${closestDetails.join("; ")}`;
+    }
+    document.getElementById("scoreBadge").textContent = badgeText;
+
+    // Выводим билд ближайшего архетипа
+    if (closestArch) {
+        generateBuild(closestArch, inputStats, stars, true);
+    } else {
+        document.getElementById("perkGrid").innerHTML =
+            '<div class="placeholder">Братец не дотягивает до нормального бойца. Я бы уволил.</div>';
+    }
+    return;
+}
+	
+	matching.sort((a, b) => b.score - a.score);
+
+	if (matching.length === 1) {
+    generateBuild(matching[0].archetype, inputStats, stars); 
+	} else {
+    // Только топ-2
+    const top2 = matching.slice(0, 2);
+    showArchetypeModal(top2, inputStats, stars);
+}
+
+}
+
+// ==================== МОДАЛЬНОЕ ОКНО ====================
+function showArchetypeModal(matching, inputStats, stars) {
+    const overlay = document.getElementById("modalOverlay");
+    const list = document.getElementById("archetypeList");
+    list.innerHTML = "";
+
+    const descriptions = {
+        "Лучник": "Чистый стрелок из лука. Требуется высокая дальняя атака. Гроза ведьм и некромантов.",
+        "Арбалетчик/Метатель": "Стрелок с арбалетом и метательным оружием. В даль болт полетел, вблизи топор кинул.",
+        "Двуручник": "Тяжёлый боец с двуручным оружием на передовой.",
+        "Дуэлянт": "Лёгкий боец с одноручным оружием и свободной второй рукой.",
+        "Танк лёгкий": "Лёгкий танк, полагающийся на уклонение и инициативу.",
+        "Танк тяжёлый": "Тяжёлый танк в максимальной броне.",
+        "Сержант лёгкий": "Лёгкий сержант для поднятия боевого духа.",
+        "Сержант тяжёлый": "Тяжёлый сержант в броне со знаменем.",
+        "Второрядник лёгкий": "Лёгкий боец с древковым оружием из второго ряда.",
+        "Второрядник тяжёлый": "Тяжёлый боец с древковым оружием из второго ряда.",
+        "Гибрид": "Универсальный боец: метательное оружие + ближний бой.",
+        "Рапирщик": "Лёгкий дуэлянт с рапирой. Врывается, наносит огромный урон от инициативы, отступает.",
+        "Кинжальщик": "Боец с кинжалом и щитом. Град ударов под броню с подавлением.",
+        "Спартанец": "Бюджетный копейщик со щитом. Держит строй, живёт долго, бьёт средне.",
+        "Безфатиговый тяж": "Двуручник без выносливости в тяжёлой броне. Шаг и удар - вся тактика."
+    };
+
+    matching.forEach(({ archetype, finals, score }, index) => {
+        const btn = document.createElement("button");
+        btn.className = "archetype-btn";
+        const star = index === 0 ? " ⭐" : ""; // лучший вариант помечаем
+        btn.innerHTML = `
+            <span class="arch-name">${getArchName(archetype)}${star}</span>
+            <div class="arch-desc">${descriptions[archetype] || ""}</div>
+            <div class="arch-desc" style="font-size:12px;color:#aaa;margin-top:3px;">
+                ОЗ ${finals.hp} | Вын ${finals.fat} | Инц ${finals.init} | АткБ ${finals.matk} | АткД ${finals.ratk} | ЗащБ ${finals.mdef} | ЗащД ${finals.rdef}
+            </div>
+        `;
+        btn.addEventListener("click", () => {
+            overlay.classList.remove("active");
+            generateBuild(archetype, inputStats, stars);
+        });
+        list.appendChild(btn);
+    });
+
+    overlay.classList.add("active");
+}
+
+document.getElementById("modalCancel").addEventListener("click", () => {
+    document.getElementById("modalOverlay").classList.remove("active");
+});
+
+// ==================== СБРОС ====================
+function resetAll() {
+    document.getElementById("hp").value = 55;
+    document.getElementById("fat").value = 95;
+    document.getElementById("res").value = 35;
+    document.getElementById("init").value = 105;
+    document.getElementById("matk").value = 52;
+    document.getElementById("ratk").value = 35;
+    document.getElementById("mdef").value = 2;
+    document.getElementById("rdef").value = 2;
+    document.getElementById("hpStars").value = 0;
+    document.getElementById("fatStars").value = 0;
+    document.getElementById("resStars").value = 0;
+    document.getElementById("initStars").value = 0;
+    document.getElementById("matkStars").value = 0;
+    document.getElementById("ratkStars").value = 0;
+    document.getElementById("mdefStars").value = 0;
+    document.getElementById("rdefStars").value = 0;
+    document.getElementById("infoBar").classList.remove("active");
+    document.getElementById("perkGrid").innerHTML = '<div class="placeholder">Введите характеристики брата и нажмите «Подобрать оптимальный билд»</div>';
+}
+
+// ==================== ОБРАБОТЧИКИ ====================
+document.getElementById("generateBtn").addEventListener("click", handleGenerate);
+document.getElementById("resetBtn").addEventListener("click", resetAll);
+
+// Закрытие модалки по клику на оверлей
+document.getElementById("modalOverlay").addEventListener("click", function(e) {
+    if (e.target === this) this.classList.remove("active");
+});
+
+function generateStatScale(backgrounds, growth) {
+    const stats = ['hp', 'fat', 'matk', 'mdef', 'ratk', 'rdef', 'init', 'res'];
+    const result = {};
+
+    stats.forEach(stat => {
+        const allValues = [];
+
+        backgrounds.forEach(bg => {
+            const range = bg[stat];
+            if (!range) return;
+            const [minInit, maxInit] = range;
+
+            // Перебираем каждое стартовое значение в диапазоне бэкграунда
+            for (let start = minInit; start <= maxInit; start++) {
+                // Для каждого количества звёзд
+                for (let stars = 0; stars <= 3; stars++) {
+                    const gainTable = growth[stat];
+                    if (!gainTable || !gainTable[stars]) continue;
+                    const gain = gainTable[stars];
+
+                    // Только 10 прокачек (максимальный уровень)
+                    allValues.push(start + gain.min * 8);
+                    allValues.push(start + gain.avg * 8);
+                    allValues.push(start + gain.max * 8);
+					
+                }
+            }
+        });
+
+        // Сортируем все возможные финальные значения
+        allValues.sort((a, b) => a - b);
+
+        // Отрезаем по 2% снизу и сверху (выбросы)
+        const totalCount = allValues.length;
+        const cutBottom = Math.floor(totalCount * 0.000);
+        const cutTop = Math.floor(totalCount * 0.000);
+        const trimmedValues = allValues.slice(cutBottom, totalCount - cutTop);
+
+        const minVal = trimmedValues[0];
+        const maxVal = trimmedValues[trimmedValues.length - 1];
+
+        // Делим на 10 равных отрезков
+        const scale = [];
+        for (let i = 0; i <= 30; i++) {
+            const value = minVal + (maxVal - minVal) * (i / 30);
+            scale.push(Math.round(value * 100) / 100);
+        }
+
+        result[stat] = scale;
+    });
+
+    return result;
+}
+
+const statScale = generateStatScale(backgrounds, growth);
+function getStatLimits() {
+    const stats = ['hp', 'fat', 'res', 'init', 'matk', 'ratk', 'mdef', 'rdef'];
+    const limits = {};
+
+    stats.forEach(stat => {
+        let minVal = Infinity;
+        let maxVal = -Infinity;
+
+        backgrounds.forEach(bg => {
+            const range = bg[stat];
+            if (!range) return;
+            if (range[0] < minVal) minVal = range[0];
+            if (range[1] > maxVal) maxVal = range[1];
+        });
+
+        limits[stat] = { min: minVal, max: maxVal };
+    });
+
+    return limits;
+}
+
+const statLimits = getStatLimits();
+
+function clampInput(input, stat) {
+    const limits = statLimits[stat];
+    if (!limits) return;
+    
+    let value = parseInt(input.value);
+    if (isNaN(value)) return;
+    
+    if (value > limits.max) {
+        input.value = limits.max;
+    } else if (value < limits.min) {
+        input.value = limits.min;
+    }
+}
+
+// Привязка к полям
+const statFields = {
+    "hp": document.getElementById("hp"),
+    "fat": document.getElementById("fat"),
+    "res": document.getElementById("res"),
+    "init": document.getElementById("init"),
+    "matk": document.getElementById("matk"),
+    "ratk": document.getElementById("ratk"),
+    "mdef": document.getElementById("mdef"),
+    "rdef": document.getElementById("rdef")
+};
+
+for (const [stat, input] of Object.entries(statFields)) {
+    if (!input) continue;
+    input.addEventListener("blur", function() { clampInput(this, stat); });
+    input.addEventListener("keydown", function(e) { if (e.key === "Enter") clampInput(this, stat); });
+}
+
+
+function renderScalePanel() {
+    const grid = document.getElementById("scaleGrid");
+    const labels = {
+        hp: "Здоровье (ОЗ)",
+        fat: "Выносливость",
+        res: "Решимость",
+        init: "Инициатива",
+        matk: "Атака ББ",
+        ratk: "Атака ДБ",
+        mdef: "Защита ББ",
+        rdef: "Защита ДБ"
+    };
+    const statsOrder = ["hp", "fat", "res", "init", "matk", "ratk", "mdef", "rdef"];
+
+    grid.innerHTML = "";
+    statsOrder.forEach(stat => {
+        const scale = statScale[stat];
+        const row = document.createElement("div");
+        row.className = "scale-row";
+        row.innerHTML = `
+            <h4>${labels[stat]}</h4>
+            <div class="scale-values">
+                ${scale.map((v, i) => `<span class="scale-chip">${i+1}: ${v}</span>`).join("")}
+            </div>
+        `;
+        grid.appendChild(row);
+    });
+}
+
+function getAllFinalValues(stat) {
+    const allValues = [];
+
+    backgrounds.forEach(bg => {
+        const range = bg[stat];
+        if (!range) return;
+        const [minInit, maxInit] = range;
+
+        for (let start = minInit; start <= maxInit; start++) {
+            for (let stars = 0; stars <= 3; stars++) {
+                const gainTable = growth[stat];
+                if (!gainTable || !gainTable[stars]) continue;
+                const gain = gainTable[stars];
+
+                // Только финальные значения (10 прокачек)
+                allValues.push(Math.round(start + gain.min * 8));
+                allValues.push(Math.round(start + gain.avg * 8));
+                allValues.push(Math.round(start + gain.max * 8));
+            }
+        }
+    });
+
+    return allValues;
+}
+
+function buildHistogram(values, bucketSize = 5) {
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const buckets = {};
+    const bucketCount = Math.ceil((max - min) / bucketSize);
+
+    for (let i = 0; i < bucketCount; i++) {
+        const bucketStart = min + i * bucketSize;
+        const bucketEnd = bucketStart + bucketSize;
+        const label = `${bucketStart}-${bucketEnd - 1}`;
+        buckets[label] = 0;
+    }
+
+    values.forEach(v => {
+        const bucketIndex = Math.floor((v - min) / bucketSize);
+        const bucketStart = min + bucketIndex * bucketSize;
+        const bucketEnd = bucketStart + bucketSize;
+        const label = `${bucketStart}-${bucketEnd - 1}`;
+        if (buckets[label] !== undefined) {
+            buckets[label]++;
+        }
+    });
+
+    return buckets;
+}
+
+function drawChart(stat) {
+    const canvas = document.getElementById("distChart");
+    const ctx = canvas.getContext("2d");
+    const values = getAllFinalValues(stat);
+
+    // Считаем частоту каждого значения
+    const frequency = {};
+    values.forEach(v => {
+        frequency[v] = (frequency[v] || 0) + 1;
+    });
+
+    // Сортируем ключи (значения характеристик)
+    const keys = Object.keys(frequency).map(Number).sort((a, b) => a - b);
+    const data = keys.map(k => frequency[k]);
+    const maxCount = Math.max(...data);
+
+    // Если слишком много столбцов — предупреждаем
+    if (keys.length > 80) {
+        console.warn("Слишком много значений для отображения: " + keys.length);
+    }
+
+    // Очистка
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    const padding = { top: 30, right: 30, bottom: 70, left: 60 };
+    const chartWidth = canvas.width - padding.left - padding.right;
+    const chartHeight = canvas.height - padding.top - padding.bottom;
+
+    // Оси
+    ctx.strokeStyle = "#6f552d";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(padding.left, padding.top);
+    ctx.lineTo(padding.left, canvas.height - padding.bottom);
+    ctx.lineTo(canvas.width - padding.right, canvas.height - padding.bottom);
+    ctx.stroke();
+
+    // Подписи оси Y
+    ctx.fillStyle = "#c7b38a";
+    ctx.font = "11px sans-serif";
+    ctx.textAlign = "right";
+    const ySteps = 5;
+    for (let i = 0; i <= ySteps; i++) {
+        const y = padding.top + (chartHeight / ySteps) * i;
+        const val = Math.round(maxCount - (maxCount / ySteps) * i);
+        ctx.fillText(val, padding.left - 10, y + 4);
+        ctx.strokeStyle = "#3a2e20";
+        ctx.beginPath();
+        ctx.moveTo(padding.left, y);
+        ctx.lineTo(canvas.width - padding.right, y);
+        ctx.stroke();
+    }
+
+    // Столбцы — по одному на каждое значение
+    const barWidth = Math.max(1, chartWidth / keys.length - 1);
+
+    keys.forEach((key, i) => {
+        const x = padding.left + i * (chartWidth / keys.length);
+        const count = frequency[key];
+        const barHeight = (count / maxCount) * chartHeight;
+        const y = canvas.height - padding.bottom - barHeight;
+
+        // Градиент
+        const gradient = ctx.createLinearGradient(x, y, x, canvas.height - padding.bottom);
+        gradient.addColorStop(0, "#d4af37");
+        gradient.addColorStop(1, "#7b5b2c");
+        ctx.fillStyle = gradient;
+        ctx.fillRect(x, y, barWidth, barHeight);
+
+        // Значение над столбцом (только если помещается)
+        if (barWidth > 4 && count > maxCount * 0.1) {
+            ctx.fillStyle = "#fff";
+            ctx.font = "8px sans-serif";
+            ctx.textAlign = "center";
+            ctx.fillText(count, x + barWidth / 2, y - 3);
+        }
+    });
+
+    // Подписи оси X — каждое n-е значение, чтобы не слипались
+    const step = Math.max(1, Math.ceil(keys.length / 20));
+    ctx.textAlign = "center";
+    keys.forEach((key, i) => {
+        if (i % step === 0 || i === keys.length - 1) {
+            ctx.save();
+            ctx.translate(padding.left + i * (chartWidth / keys.length) + barWidth / 2, canvas.height - padding.bottom + 12);
+            ctx.rotate(-0.6);
+            ctx.fillStyle = "#c7b38a";
+            ctx.font = "9px sans-serif";
+            ctx.fillText(key, 0, 0);
+            ctx.restore();
+        }
+    });
+
+    // Заголовок
+    ctx.fillStyle = "#d9b45a";
+    ctx.font = "14px sans-serif";
+    ctx.textAlign = "center";
+    const labels_full = {
+        hp: "Здоровье (ОЗ)",
+        fat: "Выносливость",
+        res: "Решимость",
+        init: "Инициатива",
+        matk: "Атака ББ",
+        ratk: "Атака ДБ",
+        mdef: "Защита ББ",
+        rdef: "Защита ДБ"
+    };
+    ctx.fillText(`Распределение: ${labels_full[stat]}`, canvas.width / 2, 20);
+}
+/*
+document.getElementById("toggleChart").addEventListener("click", function() {
+    const panel = document.getElementById("chartPanel");
+    if (panel.style.display === "none") {
+        panel.style.display = "block";
+        this.textContent = "📊 Скрыть график распределения";
+        drawChart(document.getElementById("chartStatSelect").value);
+    } else {
+        panel.style.display = "none";
+        this.textContent = "📊 Показать график распределения";
+    }
+});
+
+document.getElementById("chartStatSelect").addEventListener("change", function() {
+    if (document.getElementById("chartPanel").style.display !== "none") {
+        drawChart(this.value);
+    }
+});
+
+document.getElementById("toggleScale").addEventListener("click", function() {
+    const panel = document.getElementById("scalePanel");
+    if (panel.style.display === "none") {
+        renderScalePanel();
+        panel.style.display = "block";
+        this.textContent = "📏 Скрыть шкалы характеристик";
+    } else {
+        panel.style.display = "none";
+        this.textContent = "📏 Показать шкалы характеристик";
+    }
+});
+*/
+
+// Сброс звёзд и ограничение — в самом конце
+(function() {
+    const selects = [
+        document.getElementById("hpStars"),
+        document.getElementById("fatStars"),
+        document.getElementById("resStars"),
+        document.getElementById("initStars"),
+        document.getElementById("matkStars"),
+        document.getElementById("ratkStars"),
+        document.getElementById("mdefStars"),
+        document.getElementById("rdefStars")
+    ];
+
+    // Сброс
+    selects.forEach(s => { if (s) s.value = 0; });
+
+    function check() {
+        let count = 0;
+        selects.forEach(s => { if (s && parseInt(s.value) > 0) count++; });
+        selects.forEach(s => {
+            if (!s) return;
+            if (count >= 3 && parseInt(s.value) === 0) {
+                s.disabled = true;
+            } else {
+                s.disabled = false;
+            }
+        });
+    }
+
+    selects.forEach(s => { if (s) s.addEventListener("change", check); });
+})();
+
+const perkTranslations = {
+    "Ученик": {
+        en: {
+            name: "Student",
+            desc: "Everything can be learned with enough effort. This character gains an additional <span class='green'>20%</span> experience from battle. Upon reaching the eleventh level, they gain an extra perk, and this one becomes inactive. With the 'Manhunters' origin, the Indebted gain an extra perk at the seventh level."
+        }
+    },
+    "Здоровяк": {
+        en: {
+            name: "Colossus",
+            desc: "Ready for battle! Increases hitpoints by <span class='green'>25%</span>, reducing the chance of suffering an injury when hit."
+        }
+    },
+    "Быстрая адаптация": {
+        en: {
+            name: "Fast Adaptation",
+            desc: "Adapt to your opponent's movements! Gain <span class='green'>+10%</span> chance to hit with each attack that misses an opponent. Bonus resets upon a successful hit."
+        }
+    },
+    "Следопыт": {
+        en: {
+            name: "Pathfinder",
+            desc: "This character requires <span class='green'>1</span> less Action Point to move on any terrain down to a minimum of 2 AP per tile, and Fatigue costs are halved. Changing height levels no longer requires additional AP."
+        }
+    },
+    "Передышка": {
+        en: {
+            name: "Recover",
+            desc: "Unlocks the 'Recover' skill, which allows the character to skip a turn and reduce accumulated Fatigue by <span class='green'>50%</span>."
+        }
+    },
+    "Выдержка": {
+        en: {
+            name: "Resilient",
+            desc: "One for all and all for one! The duration of any negative effect with a finite duration (poisoned, charmed) is reduced by <span class='green'>1</span> turn. Effects that weaken over time (goblin poison, etc.) start at their weakest state."
+        }
+    },
+    "Сумки и пояса": {
+        en: {
+            name: "Bags and Belts",
+            desc: "Unlocks two additional bag slots. Items placed in bag slots no longer give a Fatigue penalty, except for two-handed weapons. *Note: bandages, antidote, and goblin poison still give a Fatigue penalty contrary to the description."
+        }
+    },
+    "В яблочко": {
+        en: {
+            name: "Bullseye",
+            desc: "Right between the eyes! The penalty to hit a target not in direct line of fire is reduced from <span class='red'>75%</span> to <span class='red'>50%</span> for any ranged and throwing weapon."
+        }
+    },
+    "Твердолобый": {
+        en: {
+            name: "Steel Brow",
+            desc: "Hits to the head no longer cause critical damage to this character, also reducing the chance of head injuries."
+        }
+    },
+    "Девять жизней": {
+        en: {
+            name: "Nine Lives",
+            desc: "Once per battle, upon receiving a fatal blow, the character survives with a few hitpoints. All negative damage-over-time effects (poison, bleeding) are cured. The next hit will probably finish them off, but improved defenses until their next turn may help survive that as well."
+        }
+    },
+    "Воодушевление": {
+        en: {
+            name: "Rally the Troops",
+            desc: "Unlocks the 'Rally the Troops' skill, which can raise the morale of nearby allies if they are wavering or fleeing. The higher the Resolve of the character using this skill, the higher the chance of success."
+        }
+    },
+    "Провокация": {
+        en: {
+            name: "Taunt",
+            desc: "Unlocks the 'Taunt' skill, which forces opponents to forget about defense and charge at the character who used the skill instead of more preferable targets."
+        }
+    },
+    "Адреналин": {
+        en: {
+            name: "Adrenaline",
+            desc: "Unlocks the 'Adrenaline' skill, allowing the character to act first next turn, ahead of opponents. Feel the pulse of adrenaline in your veins!"
+        }
+    },
+    "Уклонение": {
+        en: {
+            name: "Dodge",
+            desc: "Too fast for you! The character gains <span class='green'>15%</span> of their current Initiative as a bonus to Melee and Ranged Defense."
+        }
+    },
+    "Сила воли": {
+        en: {
+            name: "Fortified Mind",
+            desc: "An iron will keeps you on the righteous path. Resolve is increased by <span class='green'>25%</span>."
+        }
+    },
+    "Одарённый": {
+        en: {
+            name: "Gifted",
+            desc: "Life is easier for a gifted mercenary. The character immediately gains a level (not counting towards the character's level counter), allowing them to increase their attributes by the maximum possible value without considering talents."
+        }
+    },
+    "Командная работа": {
+        en: {
+            name: "Backstabber",
+            desc: "One is not a warrior alone in the field! The bonus to hit in melee is doubled from the base +5% to <span class='green'>+10%</span> for each ally surrounding and distracting the target."
+        }
+    },
+    "Предвидение": {
+        en: {
+            name: "Anticipation",
+            desc: "With the 'Anticipation' perk, when attacked by any ranged weapon, the character gains a bonus to Ranged Defense. For each tile away from the attacker, defense increases by <span class='green'>1 + 10%</span> of the character's current Ranged Defense value, but no less than <span class='green'>+10</span> Ranged Defense."
+        }
+    },
+    "Мастер щита": {
+        en: {
+            name: "Shield Expert",
+            desc: "The character learns to deflect blows with a shield rather than just blocking them. Shield defense bonuses are increased by <span class='green'>25%</span>. This effect also applies to the bonus from the 'Shieldwall' skill. Additionally, damage taken by the shield is reduced by <span class='green'>50%</span> down to a minimum of 1 durability point. The 'Shield Bash' skill gains <span class='green'>+15%</span> chance to hit."
+        }
+    },
+    "Двужильный": {
+        en: {
+            name: "Brawny",
+            desc: "The Fatigue and Initiative penalty from worn armor and helmet is reduced by <span class='green'>30%</span>."
+        }
+    },
+    "Калечащие удары": {
+        en: {
+            name: "Crippling Strikes",
+            desc: "Maim the enemy! Lowers the damage threshold required to inflict injuries by <span class='green'>33%</span> for melee and ranged attacks."
+        }
+    },
+    "Палач": {
+        en: {
+            name: "Executioner",
+            desc: "Deal additional <span class='green'>20%</span> damage against targets suffering from any injury, such as a broken arm."
+        }
+    },
+    "Рокировка": {
+        en: {
+            name: "Rotation",
+            desc: "Unlocks the 'Rotation' skill, allowing two characters to swap places while ignoring enemy zone of control, provided both are not stunned, rooted, or otherwise disabled."
+        }
+    },
+    "Мастер булавы": {
+        en: {
+            name: "Mace Mastery",
+            desc: "The character becomes a master of maces and knows how to strike enemies, armored or not. Mace attacks cost <span class='green'>25%</span> less Fatigue. Stun skills gain <span class='green'>100%</span> chance to apply if the target is not immune to stun. The two-handed mace no longer has a penalty to hit targets directly adjacent."
+        }
+    },
+    "Мастер кистеня": {
+        en: {
+            name: "Flail Mastery",
+            desc: "The character becomes a master of flails and knows how to bypass enemy shields. Flail attacks cost <span class='green'>25%</span> less Fatigue. Hitting the head with 'Lash' ignores <span class='green'>+10%</span> more armor. 'Head Hit' and 'Hail' skills now ignore shield defense bonuses. 'Thresh' gains <span class='green'>+5%</span> chance to hit."
+        }
+    },
+    "Мастер молота": {
+        en: {
+            name: "Hammer Mastery",
+            desc: "The character becomes a master of hammers and knows how to fight heavily armored opponents. Hammer attacks cost <span class='green'>25%</span> less Fatigue. 'Destroy Armor' and 'Shatter Armor' now deal <span class='green'>33%</span> more armor damage. 'Demolish Armor' gains <span class='green'>+5%</span> chance to hit. The polehammer no longer has a penalty to hit targets directly adjacent."
+        }
+    },
+    "Мастер топора": {
+        en: {
+            name: "Axe Mastery",
+            desc: "The character becomes a master of axes and knows how to shatter shields. Axe attacks cost <span class='green'>25%</span> less Fatigue. 'Split Shield' deals <span class='green'>50%</span> more shield damage when using axes. 'Round Swing' gains <span class='green'>+5%</span> chance to hit. The longaxe no longer has a penalty to hit targets directly adjacent."
+        }
+    },
+    "Мастер тесака": {
+        en: {
+            name: "Cleaver Mastery",
+            desc: "The character becomes a master of cleavers and knows how to inflict terrible wounds. Cleaver attacks cost <span class='green'>25%</span> less Fatigue. Bleeding damage caused by cleavers and whips is doubled to <span class='green'>10</span> and <span class='green'>20</span> per turn, respectively. 'Disarm' now has only a <span class='red'>10%</span> penalty to hit instead of the original <span class='red'>20%</span>."
+        }
+    },
+    "Мастер меча": {
+        en: {
+            name: "Sword Mastery",
+            desc: "The character becomes a master of sword fighting and knows how to turn the opponent's mistakes to their advantage. Sword attacks cost <span class='green'>25%</span> less Fatigue. 'Riposte' no longer has a penalty to hit. 'Gash' now requires <span class='green'>50%</span> less damage to inflict an injury. 'Lunge' and 'Swing' gain <span class='green'>+5%</span> chance to hit instead of a penalty."
+        }
+    },
+    "Мастер кинжала": {
+        en: {
+            name: "Dagger Mastery",
+            desc: "The character becomes a master of the fast and deadly dagger. Dagger attacks cost <span class='green'>25%</span> less Fatigue. 'Stab', 'Puncture', 'Deathblow', 'Prong', and 'Skewer' now cost less AP, potentially allowing an additional attack each turn."
+        }
+    },
+    "Мастер древкового оружия": {
+        en: {
+            name: "Polearm Mastery",
+            desc: "The character becomes a master of polearms and knows how to keep the enemy at a distance. Polearm attacks cost <span class='green'>25%</span> less Fatigue. Polearm skill AP costs are now reduced to <span class='green'>5</span> AP, and there is no penalty to hit targets directly adjacent."
+        }
+    },
+    "Мастер копья": {
+        en: {
+            name: "Spear Mastery",
+            desc: "The character becomes a master of spears and knows how to keep the enemy at a distance. Spear attacks cost <span class='green'>25%</span> less Fatigue. The 'Spearwall' skill does not expire on a successful approach by an opponent, continuing to work against subsequent approaching enemies. The warfork and warscythe no longer have a penalty to hit targets directly adjacent."
+        }
+    },
+    "Мастер арбалета и пищали": {
+        en: {
+            name: "Crossbow & Firearm Mastery",
+            desc: "Become a master of crossbows and firearms, nail the enemy down! Crossbow and firearm shots cost <span class='green'>25%</span> less Fatigue. An additional <span class='green'>20%</span> of damage dealt by crossbows now ignores armor (HP damage). Handgonnes now require only <span class='green'>6</span> AP to reload and can fire every turn instead of every other turn."
+        }
+    },
+    "Мастер лука": {
+        en: {
+            name: "Bow Mastery",
+            desc: "The character becomes a master of bows and knows how to rain arrows on enemies from afar. Bow shots cost <span class='green'>25%</span> less Fatigue. Sight range and maximum bow range are increased by <span class='green'>+1</span>."
+        }
+    },
+    "Мастер метательного оружия": {
+        en: {
+            name: "Throwing Mastery",
+            desc: "The character becomes a master of throwing weapons and knows how to wound or even kill the enemy before they can get close. Throwing attacks cost <span class='green'>25%</span> less Fatigue. Damage is increased by <span class='green'>30%</span> when attacking from two tiles away. Damage is increased by <span class='green'>20%</span> when attacking from three tiles away."
+        }
+    },
+    "Изворотливый": {
+        en: {
+            name: "Footwork",
+            desc: "Unlocks the 'Footwork' skill, allowing the character to leave an opponent's zone of control without triggering an attack, using deceptive foot movements."
+        }
+    },
+    "Ловкость рук": {
+        en: {
+            name: "Quick Hands",
+            desc: "Looking for this? Swapping items in battle, except for shields, does not cost AP once per turn."
+        }
+    },
+    "Упорный": {
+        en: {
+            name: "Relentless",
+            desc: "Don't stop! No matter what happens, the Initiative of a character with the 'Relentless' perk is only reduced by <span class='green'>50%</span> of accumulated Fatigue, instead of <span class='red'>100%</span>. Additionally, waiting in battle no longer penalizes the character's Initiative the following turn."
+        }
+    },
+    "Подавление": {
+        en: {
+            name: "Overwhelm",
+            desc: "The character learns to use high Initiative to overwhelm opponents, making them lose concentration and forcing errors in offense. With every attack against an opponent, hit or miss, the 'Overwhelmed' status is applied, reducing <span class='green'>10%</span> of Melee and Ranged Skill for one turn. Only affects opponents who haven't acted yet this round. Effect stacks with each attack and can be applied to multiple targets with one strike."
+        }
+    },
+    "Одинокий волк": {
+        en: {
+            name: "Lone Wolf",
+            desc: "I work better alone. When no ally is within 3 tiles, the character gains a bonus of <span class='green'>15%</span> to Ranged and Melee Skill, Melee and Ranged Defense, as well as Resolve."
+        }
+    },
+    "Длина имеет значение": {
+        en: {
+            name: "Reach Advantage",
+            desc: "The character learns to handle two-handed weapons to keep the enemy at bay, preventing them from landing accurate blows. Each hit with a two-handed weapon increases base Melee Defense by <span class='green'>+5</span>, up to +25, until this character's next turn. When attacking multiple targets at once, <span class='green'>+5</span> Melee Defense is added per hit enemy. Bonus is lost if the weapon is changed."
+        }
+    },
+    "Горемыка": {
+        en: {
+            name: "Underdog",
+            desc: "Come on, I'm used to it. This character no longer suffers defense penalties when surrounded by enemies. The effect of the 'Backstabber' perk is negated for the attacker, using standard hit chance calculation instead."
+        }
+    },
+    "Закалённый в боях": {
+        en: {
+            name: "Battle Forged",
+            desc: "Become a heavy armor specialist! Armor damage taken is reduced by a <span class='green'>percentage</span> of the current total armor value of the worn helmet and armor. The stronger the character's armor, the greater the advantage. Does not affect damage from mental attacks or other effects, but helps avoid them."
+        }
+    },
+    "Ловкач": {
+        en: {
+            name: "Nimble",
+            desc: "Become a light armor specialist! Thanks to agility in dodging and parrying, incoming hitpoint damage is reduced by up to <span class='green'>60%</span>, but this reduction decreases with increasing Fatigue penalty from armor and helmet above <span class='red'>15</span>. The lighter the character's armor, the greater the damage reduction. The 'Brawny' perk does not affect the damage reduction value. Does not affect damage from mental attacks and other effects, but helps avoid them."
+        }
+    },
+    "Берсерк": {
+        en: {
+            name: "Berserk",
+            desc: "Once per turn, upon killing an enemy, the character recovers <span class='green'>4</span> AP. Cannot exceed the character's maximum AP, nor recover more than 4 AP per attack."
+        }
+    },
+    "Боевое безумие": {
+        en: {
+            name: "Killing Frenzy",
+            desc: "Experience killing frenzy! Killing an enemy increases all damage by <span class='green'>25%</span> for two turns. The effect does not stack, but a subsequent kill refreshes the duration."
+        }
+    },
+    "Охотник за головами": {
+        en: {
+            name: "Head Hunter",
+            desc: "Aim for the head! Each hit to an opponent's head gives the character a <span class='green'>100%</span> chance to hit the head with their next attack. The next successful hit resets the effect."
+        }
+    },
+    "Устрашающий": {
+        en: {
+            name: "Fearsome",
+            desc: "Make them scatter in terror! Any attack by a character with the 'Fearsome' perk that deals at least 1 point of HP damage triggers a morale check on the opponent, usually only occurring when dealing 15+ damage, with a penalty to their Resolve of <span class='red'>15%</span> of this character's Resolve."
+        }
+    },
+    "Дуэлянт": {
+        en: {
+            name: "Duelist",
+            desc: "Become one with your weapon and strike vulnerable points in the opponent's defense! If the off-hand of a character with the 'Duelist' perk is free, holds a buckler, or holds a throwing tool (e.g., net or acid flask), an additional <span class='green'>+25%</span> of damage dealt ignores armor (HP damage). Does not work with two-handed weapons."
+        }
+    },
+    "Непоколебимый": {
+        en: {
+            name: "Indomitable",
+            desc: "Unlocks the 'Indomitable' skill, which for one turn provides: incoming damage reduced by <span class='green'>50%</span>; immunity to stun, knockback, or grapple."
+        }
+    }
+};
+
+// Текущий язык перков
+let currentPerkLang = 'ru';
+
+function getPerkDisplay(perk) {
+    if (currentPerkLang === 'en' && perkTranslations[perk.name]) {
+        return {
+            name: perkTranslations[perk.name].en.name,
+            description: perkTranslations[perk.name].en.desc
+        };
+    }
+    return {
+        name: perk.name,
+        description: perk.description
+    };
+}
+
+function setPerkLanguage(lang) {
+    currentPerkLang = lang;
+}
+
+// ==================== ПЕРЕВОДЫ АРХЕТИПОВ ====================
+const archetypeTranslations = {
+    "Лучник": { en: "Archer" },
+    "Арбалетчик/Метатель": { en: "Crossbowman/Thrower" },
+    "Двуручник": { en: "Two-Hander" },
+    "Дуэлянт": { en: "Duelist" },
+    "Танк лёгкий": { en: "Light Tank" },
+    "Танк тяжёлый": { en: "Heavy Tank" },
+    "Сержант лёгкий": { en: "Light Sergeant" },
+    "Сержант тяжёлый": { en: "Heavy Sergeant" },
+    "Второрядник лёгкий": { en: "Light Backliner" },
+    "Второрядник тяжёлый": { en: "Heavy Backliner" },
+    "Гибрид": { en: "Hybrid" },
+    "Рапирщик": { en: "Fencer" },
+    "Кинжальщик": { en: "Dagger Duelist" },
+    "Спартанец": { en: "Spartan" },
+    "Безфатиговый тяж": { en: "Fat Neutral" }
+};
+
+function getArchName(archetype) {
+    if (currentPerkLang === 'en' && archetypeTranslations[archetype]) {
+        return archetypeTranslations[archetype].en;
+    }
+    return archetype;
+}
+
+
+// ==================== ПЕРЕКЛЮЧАТЕЛЬ ЯЗЫКОВ ====================
+const translationsOptimal = {
+    ru: {
+        subtitle: "Подбор билда по характеристикам",
+        statHp: "Здоровье (ОЗ)",
+        statFat: "Выносливость",
+        statRes: "Решимость",
+        statInit: "Инициатива",
+        statMatk: "Атака ближнего боя",
+        statRatk: "Атака дальнего боя",
+        statMdef: "Защита ближнего боя",
+        statRdef: "Защита дальнего боя",
+        generateBtn: "🎯 Подобрать билд",
+        resetBtn: "Сбросить",
+        placeholder: "Введите характеристики братка и нажмите «Подобрать билд»",
+        archetypeTitle: "Братец подходит под несколько ролей",
+        modalCancel: "Отмена",
+        weakBro: "⚠️ Братец так себе. Лучше уволить.",
+        weakBroAlt: "⚠️ Братец так себе. Ближайший билд:",
+        archPrefix: "Архетип: ",
+        finalStats: "Финальные значения (11 ур.)",
+        noGood: "Братец не дотягивает до нормального бойца. Я бы уволил.",
+        footerText: "Генератор выполнил",
+        oz: "ОЗ",
+        vyn: "Вын",
+        rshm: "Ршм",
+        inc: "Инц",
+        atkb: "АткБ",
+        atkd: "АткД",
+        zashb: "ЗащБ",
+        zashd: "ЗащД",
+        archDesc: {
+            "Лучник": "Чистый стрелок из лука. Требуется высокая дальняя атака. Гроза ведьм и некромантов.",
+            "Арбалетчик/Метатель": "Стрелок с арбалетом и метательным оружием. В даль болт полетел, вблизи топор кинул.",
+            "Двуручник": "Тяжёлый боец с двуручным оружием на передовой.",
+            "Дуэлянт": "Лёгкий боец с одноручным оружием и свободной второй рукой.",
+            "Танк лёгкий": "Лёгкий танк, полагающийся на уклонение и инициативу.",
+            "Танк тяжёлый": "Тяжёлый танк в максимальной броне.",
+            "Сержант лёгкий": "Лёгкий сержант для поднятия боевого духа.",
+            "Сержант тяжёлый": "Тяжёлый сержант в броне со знаменем.",
+            "Второрядник лёгкий": "Лёгкий боец с древковым оружием из второго ряда.",
+            "Второрядник тяжёлый": "Тяжёлый боец с древковым оружием из второго ряда.",
+            "Гибрид": "Универсальный боец: метательное оружие + ближний бой.",
+            "Рапирщик": "Лёгкий дуэлянт с рапирой. Врывается, наносит огромный урон от инициативы, отступает.",
+            "Кинжальщик": "Боец с кинжалом и щитом. Град ударов под броню с подавлением.",
+            "Спартанец": "Бюджетный копейщик со щитом. Держит строй, живёт долго, бьёт средне.",
+            "Безфатиговый тяж": "Двуручник без выносливости в тяжёлой броне. Шаг и удар - вся тактика."
+        }
+    },
+    en: {
+        subtitle: "Build by Stats",
+        statHp: "Health (HP)",
+        statFat: "Fatigue",
+        statRes: "Resolve",
+        statInit: "Initiative",
+        statMatk: "Melee Skill",
+        statRatk: "Ranged Skill",
+        statMdef: "Melee Defense",
+        statRdef: "Ranged Defense",
+        generateBtn: "🎯 Find Build",
+        resetBtn: "Reset",
+        placeholder: "Enter brother's stats and press «Find Build»",
+        archetypeTitle: "Brother fits multiple roles",
+        modalCancel: "Cancel",
+        weakBro: "⚠️ This brother is weak. Dismiss him.",
+        weakBroAlt: "⚠️ This brother is weak. Closest build:",
+        archPrefix: "Archetype: ",
+        finalStats: "Final stats (Lvl 11)",
+        noGood: "This brother doesn't meet any build requirements. I'd dismiss him.",
+        footerText: "Generator by",
+        oz: "HP",
+        vyn: "Fat",
+        rshm: "Res",
+        inc: "Init",
+        atkb: "MSkl",
+        atkd: "RSkl",
+        zashb: "MDef",
+        zashd: "RDef",
+        archDesc: {
+            "Лучник": "Pure archer. Requires high Ranged Skill. Bane of witches and necromancers.",
+            "Арбалетчик/Метатель": "Crossbow and throwing weapon specialist. Bolts afar, axes up close.",
+            "Двуручник": "Heavy frontliner with two-handed weapon.",
+            "Дуэлянт": "Light fighter with one-handed weapon and free off-hand.",
+            "Танк лёгкий": "Light tank relying on dodge and initiative.",
+            "Танк тяжёлый": "Heavy tank in maximum armor.",
+            "Сержант лёгкий": "Light sergeant for morale boosting.",
+            "Сержант тяжёлый": "Heavy armored sergeant with banner.",
+            "Второрядник лёгкий": "Light backline fighter with polearm.",
+            "Второрядник тяжёлый": "Heavy backline fighter with polearm.",
+            "Гибрид": "Versatile fighter: throwing weapons + melee.",
+            "Рапирщик": "Light duelist with fencing sword. Strikes hard with Initiative, then retreats.",
+            "Кинжальщик": "Dagger and shield fighter. Armor-piercing barrage with Overwhelm.",
+            "Спартанец": "Budget spearman with shield. Holds the line, lives long, hits average.",
+            "Безфатиговый тяж": "Fat-neutral two-hander in heavy armor. Step and swing is the whole tactic."
+        }
+    }
+};
+
+let currentLang = localStorage.getItem('bbLang') || 'ru';
+
+function switchLanguage(lang) {
+    currentLang = lang;
+    localStorage.setItem('bbLang', lang);
+    const t = translationsOptimal[lang];
+
+    document.querySelector('h2').textContent = t.subtitle;
+    document.getElementById('generateBtn').textContent = t.generateBtn;
+    document.getElementById('resetBtn').textContent = t.resetBtn;
+    document.getElementById('modalCancel').textContent = t.modalCancel;
+
+    // Лейблы характеристик
+    const labels = {
+        hp: t.statHp, fat: t.statFat, res: t.statRes, init: t.statInit,
+        matk: t.statMatk, ratk: t.statRatk, mdef: t.statMdef, rdef: t.statRdef
+    };
+    const statGroups = document.querySelectorAll('.stat-group label');
+    const labelKeys = ['hp', 'fat', 'res', 'init', 'matk', 'ratk', 'mdef', 'rdef'];
+    statGroups.forEach((label, i) => {
+        if (labelKeys[i]) label.textContent = labels[labelKeys[i]];
+    });
+
+    // Плейсхолдер
+    const ph = document.querySelector('#perkGrid .placeholder');
+    if (ph) ph.textContent = t.placeholder;
+
+    // Переключаем язык перков
+    setPerkLanguage(lang);
+
+    // Кнопки
+    // Перерисовываем уже отображённые перки
+    const existingCards = document.querySelectorAll('#perkGrid .perk');
+    if (existingCards.length > 0) {
+        existingCards.forEach(card => {
+            const titleEl = card.querySelector('.perk-title');
+            const tooltipEl = card.querySelector('.tooltip');
+            const currentName = titleEl.textContent;
+            
+            let perk = perks.find(p => p.name === currentName);
+            if (!perk) {
+                perk = perks.find(p => {
+                    const trans = perkTranslations[p.name];
+                    return trans && trans.en && trans.en.name === currentName;
+                });
+            }
+            
+            if (perk) {
+                const display = getPerkDisplay(perk);
+                titleEl.textContent = display.name;
+                tooltipEl.innerHTML = display.description;
+            }
+        });
+    }
+
+    // Перерисовываем инфо-бар, если он активен
+    const infoBar = document.getElementById('infoBar');
+    if (infoBar.classList.contains('active')) {
+        const archLabel = document.getElementById('archLabel');
+        const scoreBadge = document.getElementById('scoreBadge');
+        const statsSummary = document.getElementById('statsSummary');
+        
+        const currentText = archLabel.textContent;
+        if (currentText.includes('⚠️') || currentText.includes('⚠')) {
+            archLabel.textContent = t.weakBroAlt;
+        } else {
+            let archName = currentText.replace('Архетип: ', '').replace('Archetype: ', '');
+            
+            for (const [ruName, trans] of Object.entries(archetypeTranslations)) {
+                if (trans.en === archName) {
+                    archName = ruName;
+                    break;
+                }
+            }
+            
+            archLabel.textContent = t.archPrefix + getArchName(archName);
+        }
+        
+        scoreBadge.textContent = t.finalStats;
+        
+        const statSpans = statsSummary.querySelectorAll('span');
+        if (statSpans.length >= 8) {
+            const newLabels = [t.oz, t.vyn, t.rshm, t.inc, t.atkb, t.atkd, t.zashb, t.zashd];
+            statSpans.forEach((span, i) => {
+                if (newLabels[i]) {
+                    const value = span.textContent.split(': ')[1];
+                    if (value) span.textContent = newLabels[i] + ': ' + value;
+                }
+            });
+        }
+    }
+
+    document.getElementById('langRu').classList.toggle('active', lang === 'ru');
+    document.getElementById('langEn').classList.toggle('active', lang === 'en');
+
+    window._currentLang = lang;
+}
+
+// Переопределяем showArchetypeModal для использования переводов
+const originalShowArchetypeModal = showArchetypeModal;
+showArchetypeModal = function(matching, inputStats, stars) {
+    const overlay = document.getElementById("modalOverlay");
+    const list = document.getElementById("archetypeList");
+    list.innerHTML = "";
+    const t = translationsOptimal[currentLang];
+
+    document.querySelector('#modalOverlay h3').textContent = t.archetypeTitle;
+
+    matching.forEach(({ archetype, finals, score }, index) => {
+        const btn = document.createElement("button");
+        btn.className = "archetype-btn";
+        const star = index === 0 ? " ⭐" : "";
+        const desc = (t.archDesc && t.archDesc[archetype]) || "";
+        btn.innerHTML = `
+            <span class="arch-name">${getArchName(archetype)}${star}</span>
+            <div class="arch-desc">${desc}</div>
+            <div class="arch-desc" style="font-size:12px;color:#aaa;margin-top:3px;">
+                ${t.oz} ${finals.hp} | ${t.vyn} ${finals.fat} | ${t.inc} ${finals.init} | ${t.atkb} ${finals.matk} | ${t.atkd} ${finals.ratk} | ${t.zashb} ${finals.mdef} | ${t.zashd} ${finals.rdef}
+            </div>
+        `;
+        btn.addEventListener("click", () => {
+            overlay.classList.remove("active");
+            generateBuild(archetype, inputStats, stars);
+        });
+        list.appendChild(btn);
+    });
+
+    overlay.classList.add("active");
+};
+
+// Обновляем generateBuild для переводов
+const originalGenerateBuild = generateBuild;
+generateBuild = function(archetype, inputStats, stars, isWeak = false) {
+    originalGenerateBuild(archetype, inputStats, stars, isWeak);
+    const t = translationsOptimal[currentLang];
+
+    const archLabel = document.getElementById("archLabel");
+    if (isWeak) {
+        archLabel.textContent = t.weakBro;
+    } else {
+        archLabel.textContent = t.archPrefix + getArchName(archetype);
+    }
+
+    const finals = calcFinalsForArchetype(inputStats, stars, archetype);
+    document.getElementById("statsSummary").innerHTML = `
+        <span>${t.oz}: ${finals.hp}</span>
+        <span>${t.vyn}: ${finals.fat}</span>
+        <span>${t.rshm}: ${finals.res}</span>
+        <span>${t.inc}: ${finals.init}</span>
+        <span>${t.atkb}: ${finals.matk}</span>
+        <span>${t.atkd}: ${finals.ratk}</span>
+        <span>${t.zashb}: ${finals.mdef}</span>
+        <span>${t.zashd}: ${finals.rdef}</span>
+    `;
+    document.getElementById("scoreBadge").textContent = t.finalStats;
+};
+
+// Обновляем resetAll
+const originalResetAll = resetAll;
+resetAll = function() {
+    originalResetAll();
+    const t = translationsOptimal[currentLang];
+    document.getElementById("perkGrid").innerHTML = '<div class="placeholder">' + t.placeholder + '</div>';
+};
+
+// Обновляем блок «дна» в handleGenerate
+const originalHandleGenerate = handleGenerate;
+handleGenerate = function() {
+    const inputStats = getInputStats();
+    const stars = getStarValues();
+    const allArchetypes = Object.keys(buildTemplates);
+    const matching = [];
+
+    for (const archetype of allArchetypes) {
+        const finals = calcFinalsForArchetype(inputStats, stars, archetype);
+        if (meetsThresholds(finals, archetype)) {
+            const score = calculateScore(finals, stars, archetype);
+            matching.push({ archetype, finals, score });
+        }
+    }
+
+    if (matching.length === 0) {
+        let closestArch = null;
+        let closestDiff = Infinity;
+        let closestFinals = null;
+        let closestDetails = [];
+        const allArchetypes = Object.keys(buildTemplates);
+        const t = translationsOptimal[currentLang];
+
+        for (const archetype of allArchetypes) {
+            const archFinals = calcFinalsForArchetype(inputStats, stars, archetype);
+            const th = getThresholdsForArchetype(archetype);
+            let totalDiff = 0;
+            let failed = false;
+            const details = [];
+
+            for (const [stat, minVal] of Object.entries(th.min || {})) {
+                const val = archFinals[stat] || 0;
+                if (val < minVal) {
+                    const diff = minVal - val;
+                    totalDiff += diff;
+                    failed = true;
+                    details.push(`${statToLabel(stat)}: ${val}/${minVal} (недобор ${diff})`);
+                }
+            }
+            for (const [stat, maxVal] of Object.entries(th.max || {})) {
+                const val = archFinals[stat] || 0;
+                if (val >= maxVal) {
+                    const diff = val - maxVal + 1;
+                    totalDiff += diff;
+                    failed = true;
+                    details.push(`${statToLabel(stat)}: ${val} (макс: <${maxVal}, превышение ${diff})`);
+                }
+            }
+
+            if (failed && totalDiff <= closestDiff) {
+                closestDiff = totalDiff;
+                closestArch = archetype;
+                closestFinals = archFinals;
+                closestDetails = details;
+            }
+        }
+
+        if (!closestFinals) {
+            const universal = {};
+            for (const key of Object.keys(inputStats)) {
+                universal[key] = Math.round(inputStats[key] + growth[key][stars[key]].avg * 3);
+            }
+            closestFinals = universal;
+        }
+
+        document.getElementById("infoBar").classList.add("active");
+        document.getElementById("archLabel").textContent = t.weakBroAlt;
+        document.getElementById("statsSummary").innerHTML = `
+            <span>${t.oz}: ${closestFinals.hp}</span>
+            <span>${t.vyn}: ${closestFinals.fat}</span>
+            <span>${t.rshm}: ${closestFinals.res}</span>
+            <span>${t.inc}: ${closestFinals.init}</span>
+            <span>${t.atkb}: ${closestFinals.matk}</span>
+            <span>${t.atkd}: ${closestFinals.ratk}</span>
+            <span>${t.zashb}: ${closestFinals.mdef}</span>
+            <span>${t.zashd}: ${closestFinals.rdef}</span>
+        `;
+
+        let badgeText = t.finalStats;
+        if (closestDetails.length > 0) {
+            badgeText += ` — ${closestDetails.join("; ")}`;
+        }
+        document.getElementById("scoreBadge").textContent = badgeText;
+
+        if (closestArch) {
+            generateBuild(closestArch, inputStats, stars, true);
+        } else {
+            document.getElementById("perkGrid").innerHTML = '<div class="placeholder">' + t.noGood + '</div>';
+        }
+        return;
+    }
+
+    matching.sort((a, b) => b.score - a.score);
+
+    if (matching.length === 1) {
+        generateBuild(matching[0].archetype, inputStats, stars);
+    } else {
+        const top2 = matching.slice(0, 2);
+        showArchetypeModal(top2, inputStats, stars);
+    }
+};
+
+// Обработчики кнопок языка
+document.getElementById('langRu').addEventListener('click', () => switchLanguage('ru'));
+document.getElementById('langEn').addEventListener('click', () => switchLanguage('en'));
+
+// Восстановление языка при загрузке
+if (currentLang !== 'ru') {
+    switchLanguage(currentLang);
+}
+
+// Футер
+(function() {
+    const t = translationsOptimal[currentLang];
+    const footer = document.querySelector('.footer');
+    if (footer) {
+        footer.innerHTML = t.footerText + ' <strong>York XIII</strong> | ' +
+        '<a href="https://youtube.com/@yorkxiii" target="_blank">' +
+        '<svg class="youtube-icon" viewBox="0 0 24 24">' +
+        '<path fill="#FF0000" d="M23.5 6.2s-.2-1.7-.9-2.4c-.9-.9-1.9-.9-2.4-1C16.8 2.5 12 2.5 12 2.5h0s-4.8 0-8.2.3c-.5.1-1.5.1-2.4 1C.7 4.5.5 6.2.5 6.2S0 8.1 0 10v2c0 1.9.5 3.8.5 3.8s.2 1.7.9 2.4c.9.9 2.1.9 2.7 1 2 .2 7.9.3 7.9.3s4.8 0 8.2-.3c.5-.1 1.5-.1 2.4-1 .7-.7.9-2.4.9-2.4S24 13.9 24 12v-2c0-1.9-.5-3.8-.5-3.8z"/>' +
+        '<path fill="white" d="M9.5 15.2l6.3-3.2-6.3-3.2z"/>' +
+        '</svg>YouTube</a>';
+    }
+})();
+</script>
+</body>
+</html>
