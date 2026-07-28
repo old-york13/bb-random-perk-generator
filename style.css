@@ -418,4 +418,5 @@ header a:hover,
 header a:active,
 header a:focus {
     text-decoration: none !important;
+    outline: none !important;
 }
