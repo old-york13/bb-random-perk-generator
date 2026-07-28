@@ -325,11 +325,9 @@ html, body {
 @media (max-width: 900px) {
     .lang-switch {
         position: static !important;
+        display: flex;
         justify-content: center;
         margin: 10px auto 0;
-        right: auto;
-        top: auto;
-        transform: none;
     }
     .perk-grid {
         grid-template-columns: repeat(3, 1fr);
@@ -342,8 +340,9 @@ html, body {
 @media (max-width: 750px) {
     .lang-switch {
         position: static !important;
+        display: flex;
         justify-content: center;
-        margin: 10px auto 0;
+        margin: 8px auto 0;
     }
     .input-panel {
         grid-template-columns: 1fr 1fr;
@@ -356,6 +355,7 @@ html, body {
 @media (max-width: 550px) {
     .lang-switch {
         position: static !important;
+        display: flex;
         justify-content: center;
         margin: 5px auto 0;
     }
@@ -395,8 +395,6 @@ html, body {
     display: flex;
     gap: 5px;
     z-index: 10;
-    border: none;
-    box-shadow: none;
 }
 .lang-btn {
     padding: 5px 12px !important;
