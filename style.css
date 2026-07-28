@@ -305,6 +305,9 @@ button:hover::after {
     text-align: center;
     white-space: nowrap;
     min-width: 340px;
+    width: fit-content;
+    margin: 0 auto;
+    display: block;
 }
 .btn-link:hover {
     background: linear-gradient(180deg, #a8821a 0%, #7d5e14 100%);
