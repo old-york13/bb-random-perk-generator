@@ -303,9 +303,10 @@ button:hover::after {
     letter-spacing: 0.5px;
     font-family: 'Cinzel', 'Georgia', serif;
     text-align: center;
-    max-width: 340px;
     white-space: normal;
-    word-wrap: break-word;
+    word-break: break-word;
+    max-width: 90vw;
+    box-sizing: border-box;
 }
 .btn-link:hover {
     background: linear-gradient(180deg, #a8821a 0%, #7d5e14 100%);
