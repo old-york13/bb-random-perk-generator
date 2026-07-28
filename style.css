@@ -302,6 +302,9 @@ button:hover::after {
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08);
     letter-spacing: 0.5px;
     font-family: 'Cinzel', 'Georgia', serif;
+    text-align: center;
+    white-space: nowrap;
+    min-width: 340px;
 }
 .btn-link:hover {
     background: linear-gradient(180deg, #a8821a 0%, #7d5e14 100%);
@@ -378,14 +381,11 @@ html, body {
         font-size: 16px;
     }
     .btn-link {
-        padding: 12px 20px;
-        font-size: 16px;
-    }
-}
-
-.btn-link {
-    text-align: center !important;
+    padding: 12px 20px;
+    font-size: 16px;
+    min-width: auto;
     white-space: nowrap;
+}
 }
 .placeholder-item {
     margin-bottom: 12px;
@@ -439,7 +439,4 @@ header a:active {
     text-decoration: none !important;
     border: none !important;
     outline: none !important;
-}
-.btn-link {
-    text-align: center;
 }
