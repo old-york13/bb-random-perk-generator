@@ -322,6 +322,13 @@ html, body {
     }
 }
 @media (max-width: 900px) {
+    .lang-switch {
+        position: static !important;
+        justify-content: center;
+        margin-top: 10px;
+        right: auto;
+        top: auto;
+    }
     .perk-grid {
         grid-template-columns: repeat(3, 1fr);
     }
