@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta name="screen-orientation" content="portrait">
     <title>Battle Brothers - Random Perk Generator</title>
     <link rel="stylesheet" href="style.css">
     <link rel="manifest" href="/bb-random-perk-generator/manifest.json">
@@ -134,6 +135,9 @@ document.getElementById('langEn').addEventListener('click', () => switchLanguage
     }
 })();
 
+if (screen.orientation && screen.orientation.lock) {
+    screen.orientation.lock('portrait').catch(() => {});
+}
 </script>
 
 </body>
