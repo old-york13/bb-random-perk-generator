@@ -1,5 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&display=swap');
-
+*, *::before, *::after {
+    box-sizing: border-box;
+}
 html {
     height: 100%;
 }
@@ -22,14 +24,13 @@ body {
 }
 
 .container {
-    width: 1100px;
+    max-width: 1100px;
+    width: 100%;
     margin: auto;
-    padding: 30px;
+    padding: 20px 15px;
     flex: 1;
-    background: linear-gradient(180deg, rgba(45, 37, 28, 0.7) 0%, rgba(30, 25, 18, 0.85) 100%);
-    border-left: 1px solid rgba(212, 175, 55, 0.15);
-    border-right: 1px solid rgba(212, 175, 55, 0.15);
-    box-shadow: 0 0 60px rgba(0, 0, 0, 0.5);
+    box-sizing: border-box;
+    overflow-x: visible;
 }
 
 /* Декоративный разделитель */
@@ -309,9 +310,14 @@ button:hover::after {
 }
 
 /* Адаптивность */
+html, body {
+    overflow-x: hidden;
+    max-width: 100%;
+}
+
 @media (max-width: 1150px) {
     .container {
-        width: 95%;
+        max-width: 95%;
         padding: 20px;
     }
 }
@@ -323,13 +329,40 @@ button:hover::after {
         font-size: 38px;
     }
 }
+@media (max-width: 750px) {
+    .lang-switch {
+        position: static;
+        justify-content: center;
+        margin-top: 10px;
+    }
+    .input-panel {
+        grid-template-columns: 1fr 1fr;
+    }
+    .perk-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
 @media (max-width: 550px) {
+    .input-panel {
+        grid-template-columns: 1fr;
+    }
     .perk-grid {
         grid-template-columns: repeat(2, 1fr);
     }
     h1 {
-        font-size: 30px;
+        font-size: 28px;
         letter-spacing: 3px;
+    }
+    h2 {
+        font-size: 16px;
+    }
+    button {
+        padding: 12px 20px;
+        font-size: 16px;
+    }
+    .btn-link {
+        padding: 12px 20px;
+        font-size: 16px;
     }
 }
 .placeholder-item {
@@ -346,6 +379,8 @@ button:hover::after {
     display: flex;
     gap: 5px;
     z-index: 10;
+    border: none;
+    box-shadow: none;
 }
 .lang-btn {
     padding: 5px 12px !important;
@@ -357,6 +392,7 @@ button:hover::after {
     cursor: pointer;
     transition: 0.2s;
     font-family: inherit;
+	outline: none;
 }
 .lang-btn.active {
     background: #7b5b2c !important;
@@ -365,4 +401,16 @@ button:hover::after {
 }
 .lang-btn:hover:not(.active) {
     color: #d4af37 !important;
+}
+*:focus,
+*:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
+}
+header a,
+header a:visited,
+header a:hover,
+header a:active,
+header a:focus {
+    text-decoration: none !important;
 }
