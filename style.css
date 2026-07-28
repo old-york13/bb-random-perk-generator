@@ -343,6 +343,11 @@ html, body {
     }
 }
 @media (max-width: 550px) {
+    .lang-switch {
+        position: static;
+        justify-content: center;
+        margin-top: 5px;
+    }
     .input-panel {
         grid-template-columns: 1fr;
     }
